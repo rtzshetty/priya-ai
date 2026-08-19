@@ -1,0 +1,11 @@
+{
+  "name": "Remix: Priya -",
+  "description": "A sassy, witty, and intelligent Indian female AI voice assistant.",
+  "requestFramePermissions": [
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
