@@ -56,11 +56,17 @@ export class LiveSessionManager {
       
       // 1. Get Microphone FIRST - Use more robust constraints
       try {
-        const constraints = {
+        const constraints: any = {
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
+            channelCount: 1,
+            // Advanced non-standard properties for maximum noise reduction
+            googNoiseSuppression: true,
+            googHighpassFilter: true,
+            googAutoGainControl: true,
+            voiceIsolation: true, // For newer browsers that support hardware voice isolation
           }
         };
         
@@ -131,7 +137,20 @@ export class LiveSessionManager {
         }).catch(err => console.warn("Error sending audio", err));
       };
 
-      this.source.connect(this.processor);
+      // Create Voice Isolation Filters (Bandpass-like effect for human voice range ~300Hz to 3400Hz)
+      const highpassFilter = this.audioContext.createBiquadFilter();
+      highpassFilter.type = 'highpass';
+      highpassFilter.frequency.value = 300; // Cut off low background rumbles/hums
+
+      const lowpassFilter = this.audioContext.createBiquadFilter();
+      lowpassFilter.type = 'lowpass';
+      lowpassFilter.frequency.value = 3400; // Cut off high background hisses/noise
+
+      // Chain: source -> highpass -> lowpass -> processor
+      this.source.connect(highpassFilter);
+      highpassFilter.connect(lowpassFilter);
+      lowpassFilter.connect(this.processor);
+
       this.processor.connect(this.audioContext.destination);
 
       // Connect to Live API
