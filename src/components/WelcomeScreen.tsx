@@ -1,17 +1,111 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { User as UserIcon, ArrowRight, ArrowLeft } from 'lucide-react';
+import { User as UserIcon, ArrowRight, ArrowLeft, Mail, Lock } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { 
+  signInWithPopup, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  sendEmailVerification, 
+  updateProfile 
+} from 'firebase/auth';
 
 interface WelcomeScreenProps {
   onNameSubmit: (name: string) => void;
 }
 
 export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
+  const [isLogin, setIsLogin] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingUser, setPendingUser] = useState<{email: string, name: string} | null>(null);
+  
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  const deriveNameFromEmail = (emailAddress: string) => {
+    let derived = emailAddress.split('@')[0];
+    derived = derived.split(/[._+-]/)[0];
+    if (!derived) return "User";
+    return derived.charAt(0).toUpperCase() + derived.slice(1);
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+    
+    if (!trimmedEmail || !trimmedPassword) {
+      setError('Email and password are required');
+      return;
+    }
+
+    if (isLogin) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+        
+        if (!userCredential.user.emailVerified) {
+          setError('Please verify your email address. Check your inbox for the link.');
+          return;
+        }
+        
+        setError('');
+        onNameSubmit(userCredential.user.displayName || deriveNameFromEmail(trimmedEmail));
+      } catch (err: any) {
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+          setError('Incorrect email or password.');
+        } else if (err.code === 'auth/user-not-found') {
+          setError('No account found with this email. Please sign up.');
+        } else {
+          setError(err.message || 'Failed to sign in');
+        }
+      }
+    } else {
+      try {
+        let finalName = name.trim();
+        if (!finalName) {
+          finalName = deriveNameFromEmail(trimmedEmail);
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, trimmedPassword);
+        await updateProfile(userCredential.user, { displayName: finalName });
+        await sendEmailVerification(userCredential.user);
+
+        setPendingUser({
+          email: trimmedEmail,
+          name: finalName
+        });
+        setIsVerifying(true);
+        setError('');
+      } catch (err: any) {
+        if (err.code === 'auth/email-already-in-use') {
+          setError('Account already exists. Please sign in.');
+        } else if (err.code === 'auth/weak-password') {
+          setError('Password should be at least 6 characters.');
+        } else {
+          setError(err.message || 'Failed to sign up');
+        }
+      }
+    }
+  };
+
+  const handleVerifyCheck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (auth.currentUser) {
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
+        setError('');
+        onNameSubmit(auth.currentUser.displayName || pendingUser?.name || 'User');
+      } else {
+        setError('Email not verified yet. Please check your inbox and click the verification link.');
+      }
+    } else {
+      setError('Session lost. Please try signing in again.');
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
@@ -98,21 +192,151 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
               <ArrowLeft size={12} /> Back
             </button>
           </>
-        ) : (
+        ) : isVerifying ? (
           <>
             <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">
-              Hello there.
+              Verify your email.
             </h1>
             <p className="text-white/50 text-sm text-center mb-8">
-              Sign in to begin your conversation with Priya.
+              We've sent a verification link to <strong>{pendingUser?.email}</strong>.
+              <br/>
+              <span className="text-xs text-violet-300/50 mt-1 block">Please check your inbox and click the link to continue.</span>
             </p>
             
-            <div className="w-full flex flex-col gap-4 items-center">
+            <form onSubmit={handleVerifyCheck} className="w-full flex flex-col gap-4 items-center">
+              {error && (
+                <p className="w-full text-red-400 text-xs text-center bg-red-500/10 py-2 px-3 rounded-lg border border-red-500/20">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-violet-600 hover:bg-violet-500 transition-all rounded-2xl flex items-center justify-center gap-2 font-medium text-sm mt-2"
+              >
+                I have verified my email
+                <ArrowRight size={16} />
+              </button>
+            </form>
+
+            <button
+              onClick={() => {
+                setIsVerifying(false);
+                setError('');
+              }}
+              className="mt-6 text-xs text-white/40 hover:text-white/80 transition-colors flex items-center gap-1"
+            >
+              <ArrowLeft size={12} /> Back to Sign In
+            </button>
+          </>
+        ) : showEmailForm ? (
+          <>
+            <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">
+              {isLogin ? 'Welcome back.' : 'Hello there.'}
+            </h1>
+            <p className="text-white/50 text-sm text-center mb-6">
+              {isLogin ? 'Sign in to continue your conversation.' : 'Sign up to begin your conversation with Priya.'}
+            </p>
+            
+            <form onSubmit={handleEmailSubmit} className="w-full flex flex-col gap-4 items-center">
+              {!isLogin && (
+                <div className="relative w-full">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+                    <UserIcon size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (error) setError('');
+                    }}
+                    placeholder="Name (Optional)"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 outline-none focus:border-violet-500/50 transition-colors text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="relative w-full">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+                  <Mail size={18} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Email address"
+                  className={`w-full bg-white/5 border ${error && error.toLowerCase().includes('email') ? 'border-red-500/50' : 'border-white/10'} rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 outline-none focus:border-violet-500/50 transition-colors text-sm`}
+                  required
+                />
+              </div>
+
+              <div className="relative w-full">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+                  <Lock size={18} />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Password"
+                  className={`w-full bg-white/5 border ${error && error.toLowerCase().includes('password') ? 'border-red-500/50' : 'border-white/10'} rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 outline-none focus:border-violet-500/50 transition-colors text-sm`}
+                  required
+                />
+              </div>
               
               {error && (
                 <p className="w-full text-red-400 text-xs text-center bg-red-500/10 py-2 px-3 rounded-lg border border-red-500/20">{error}</p>
               )}
 
+              <button
+                type="submit"
+                disabled={!email.trim() || !password.trim()}
+                className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-all rounded-2xl flex items-center justify-center gap-2 font-medium text-sm mt-2"
+              >
+                {isLogin ? 'Sign In' : 'Sign Up'}
+                <ArrowRight size={16} />
+              </button>
+            </form>
+
+            <button 
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+              }}
+              className="text-xs text-white/40 hover:text-white/80 transition-colors mt-4"
+            >
+              {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowEmailForm(false);
+                setError('');
+              }}
+              className="mt-6 text-xs text-white/40 hover:text-white/80 transition-colors flex items-center gap-1"
+            >
+              <ArrowLeft size={12} /> Back
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">
+              Hello there.
+            </h1>
+            <p className="text-white/50 text-sm text-center mb-6">
+              Choose a way to sign in and begin your conversation.
+            </p>
+
+            <div className="w-full flex flex-col gap-4 items-center">
+              {error && (
+                <p className="w-full text-red-400 text-xs text-center bg-red-500/10 py-2 px-3 rounded-lg border border-red-500/20">{error}</p>
+              )}
+              
               <button
                 onClick={handleGoogleSignIn}
                 className="w-full py-3 bg-white hover:bg-gray-100 text-black transition-all rounded-2xl flex items-center justify-center gap-3 font-medium text-sm"
@@ -124,6 +348,17 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
                 Continue with Google
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowEmailForm(true);
+                  setError('');
+                }}
+                className="w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 transition-all rounded-2xl flex items-center justify-center gap-3 font-medium text-sm"
+              >
+                <Mail size={18} />
+                Continue with Email
               </button>
             </div>
 
