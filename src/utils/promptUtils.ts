@@ -93,5 +93,7 @@ export function getSystemInstruction(mode: AssistantMode, language: AssistantLan
 
   instruction += `LOW INTERNET / SPEED COMMAND: The user is on a slow internet connection. You MUST keep your responses EXTREMELY short, punchy, and concise. Speak in quick, snappy sentences (ideally just 1 short sentence, maximum 10-15 words). Do not give long explanations unless absolutely necessary. This minimizes data transfer and audio generation latency. Be fast, direct, and witty.\n\n`;
 
+  instruction += `GENDER DETECTION FROM VOICE: You must actively listen to the pitch and tone of the user's voice to determine if the speaker is male or female. Adjust your conversational terms, pronouns, and respectful or playful forms of address dynamically based on their perceived gender (e.g., "Sir/Ma'am", "bhai/yaar/behen" depending on the mode and relationship).\n\n`;
+
   return instruction;
 }
