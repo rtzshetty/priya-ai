@@ -1,40 +1,44 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { User, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { User as UserIcon, ArrowRight, ArrowLeft } from 'lucide-react';
+import { auth, googleProvider } from '../lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 interface WelcomeScreenProps {
   onNameSubmit: (name: string) => void;
 }
 
 export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
+  const [isGuestMode, setIsGuestMode] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    if (trimmedName) {
-      const normalizedName = trimmedName.toLowerCase();
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
       
-      // Read the 'file' containing all saved names
-      const savedNamesFile = localStorage.getItem('priya_saved_names_file');
-      const savedNames: string[] = savedNamesFile ? JSON.parse(savedNamesFile) : [];
-      
-      // Check for returning user
-      if (savedNames.includes(normalizedName)) {
-        // Log them in as a returning user
-        setError('');
-        onNameSubmit(trimmedName);
-        return;
+      // Attempt to derive a clean first name from display name or email
+      let finalName = 'User';
+      if (result.user.displayName) {
+        finalName = result.user.displayName.split(' ')[0];
+      } else if (result.user.email) {
+        let derived = result.user.email.split('@')[0];
+        derived = derived.split(/[._+-]/)[0];
+        finalName = derived.charAt(0).toUpperCase() + derived.slice(1);
       }
       
-      // Save the new name to the 'file'
-      savedNames.push(normalizedName);
-      localStorage.setItem('priya_saved_names_file', JSON.stringify(savedNames));
-      
       setError('');
-      onNameSubmit(trimmedName);
+      onNameSubmit(finalName);
+    } catch (err: any) {
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setError(err.message || 'Failed to sign in with Google');
+      }
     }
+  };
+
+  const handleGuestSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onNameSubmit(name.trim() || 'Guest');
   };
 
   return (
@@ -53,41 +57,96 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
           P
         </div>
         
-        <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">Hello there.</h1>
-        <p className="text-white/50 text-sm text-center mb-8">Before we begin, what should I call you?</p>
-        
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 items-center">
-          <div className="relative w-full">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-              <User size={18} />
-            </div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (error) setError('');
-              }}
-              placeholder="Enter your name"
-              className={`w-full bg-white/5 border ${error ? 'border-red-500/50' : 'border-white/10'} rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 outline-none focus:border-violet-500/50 transition-colors text-sm`}
-              autoFocus
-              required
-            />
-          </div>
-          
-          {error && (
-            <p className="w-full text-red-400 text-xs text-center bg-red-500/10 py-2 px-3 rounded-lg border border-red-500/20">{error}</p>
-          )}
+        {isGuestMode ? (
+          <>
+            <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">
+              Welcome, Guest.
+            </h1>
+            <p className="text-white/50 text-sm text-center mb-8">
+              What should I call you?
+            </p>
+            
+            <form onSubmit={handleGuestSubmit} className="w-full flex flex-col gap-4 items-center">
+              <div className="relative w-full">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
+                  <UserIcon size={18} />
+                </div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your name"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/30 outline-none focus:border-violet-500/50 transition-colors text-sm"
+                  autoFocus
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!name.trim()}
+                className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-all rounded-2xl flex items-center justify-center gap-2 font-medium text-sm mt-2"
+              >
+                Start Conversation
+                <ArrowRight size={16} />
+              </button>
+            </form>
+            
+            <button
+              onClick={() => setIsGuestMode(false)}
+              className="mt-6 text-xs text-white/40 hover:text-white/80 transition-colors flex items-center gap-1"
+            >
+              <ArrowLeft size={12} /> Back
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-serif font-medium tracking-wide mb-2 text-center">
+              Hello there.
+            </h1>
+            <p className="text-white/50 text-sm text-center mb-8">
+              Sign in to begin your conversation with Priya.
+            </p>
+            
+            <div className="w-full flex flex-col gap-4 items-center">
+              
+              {error && (
+                <p className="w-full text-red-400 text-xs text-center bg-red-500/10 py-2 px-3 rounded-lg border border-red-500/20">{error}</p>
+              )}
 
-          <button
-            type="submit"
-            disabled={!name.trim()}
-            className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-all rounded-2xl flex items-center justify-center gap-2 font-medium text-sm"
-          >
-            Start Conversation
-            <ArrowRight size={16} />
-          </button>
-        </form>
+              <button
+                onClick={handleGoogleSignIn}
+                className="w-full py-3 bg-white hover:bg-gray-100 text-black transition-all rounded-2xl flex items-center justify-center gap-3 font-medium text-sm"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-3 mt-6 w-full">
+              <div className="w-full flex items-center gap-3 my-2 opacity-30">
+                <div className="flex-1 h-px bg-white" />
+                <span className="text-[10px] uppercase tracking-widest text-white font-medium">OR</span>
+                <div className="flex-1 h-px bg-white" />
+              </div>
+
+              <button
+                onClick={() => {
+                  setError('');
+                  setIsGuestMode(true);
+                  setName('');
+                }}
+                className="w-full py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 transition-all rounded-2xl flex items-center justify-center gap-2 font-medium text-sm text-white/70 hover:text-white"
+              >
+                Continue as Guest
+              </button>
+            </div>
+          </>
+        )}
       </motion.div>
     </div>
   );
