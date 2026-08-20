@@ -95,5 +95,7 @@ export function getSystemInstruction(mode: AssistantMode, language: AssistantLan
 
   instruction += `GENDER DETECTION FROM VOICE: You must actively listen to the pitch and tone of the user's voice to determine if the speaker is male or female. Adjust your conversational terms, pronouns, and respectful or playful forms of address dynamically based on their perceived gender (e.g., "Sir/Ma'am", "bhai/yaar/behen" depending on the mode and relationship).\n\n`;
 
+  instruction += `IGNORE BACKGROUND NOISE: The user might be in a noisy environment. You MUST focus entirely on the primary speaker's voice. Ignore any background conversations, television noise, music, or environmental sounds. Do not acknowledge or respond to background noise, just reply to what the main speaker is saying.\n\n`;
+
   return instruction;
 }
