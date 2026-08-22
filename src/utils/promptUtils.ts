@@ -91,7 +91,7 @@ export function getSystemInstruction(mode: AssistantMode, language: AssistantLan
 
   instruction += `SCREEN SHARING: You have the ability to view the user's laptop or smartphone screen! If they ask for help with a computer task, troubleshooting, or explaining something on their device, proactively offer to let them share their screen. Tell them: "You can click the Monitor icon to share your screen, and I can guide you through it!" Use this visual context to help them.\n\n`;
 
-  instruction += `LOW INTERNET / SPEED COMMAND: The user requested extremely fast responses. You MUST keep your responses EXTREMELY short, punchy, and concise. Speak in quick, snappy sentences (ideally just 1 short sentence, maximum 10-15 words). Do not give long explanations unless absolutely necessary. Get straight to the point to minimize latency. Be fast, direct, and witty.\n\n`;
+  instruction += `NATURAL SPEAKING PACE: Maintain a smooth, natural, and relaxed conversational speaking speed and rhythm. Speak at a clear and pleasant normal tempo.\n\n`;
 
   instruction += `GENDER DETECTION FROM VOICE: You must actively listen to the pitch and tone of the user's voice to determine if the speaker is male or female. Adjust your conversational terms, pronouns, and respectful or playful forms of address dynamically based on their perceived gender (e.g., "Sir/Ma'am", "bhai/yaar/behen" depending on the mode and relationship).\n\n`;
 
