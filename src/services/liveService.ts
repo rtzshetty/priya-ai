@@ -447,6 +447,7 @@ export class LiveSessionManager {
   }
 
   async startScreenShare() {
+    this.stopScreenShare(); // Clear any existing screen share session to prevent interval overlaps and memory leaks
     try {
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
@@ -467,7 +468,8 @@ export class LiveSessionManager {
         this.stopScreenShare();
       };
 
-      this.screenCaptureInterval = window.setInterval(() => this.captureAndSendFrame(), 1000); // 1 FPS as per guidelines
+      // Increase interval to 2000ms (0.5 FPS) to prevent WebSocket buffer bloat on slow connections
+      this.screenCaptureInterval = window.setInterval(() => this.captureAndSendFrame(), 2000);
 
       return true;
     } catch (error) {
@@ -481,8 +483,8 @@ export class LiveSessionManager {
 
     if (this.videoElement.videoWidth === 0 || this.videoElement.videoHeight === 0) return;
 
-    // Scale down for low internet connection
-    const MAX_WIDTH = 640;
+    // Scale down more aggressively for low internet connection / extended sessions
+    const MAX_WIDTH = 480;
     const scale = Math.min(1, MAX_WIDTH / this.videoElement.videoWidth);
     this.canvasElement.width = this.videoElement.videoWidth * scale;
     this.canvasElement.height = this.videoElement.videoHeight * scale;
@@ -491,8 +493,8 @@ export class LiveSessionManager {
     if (!ctx) return;
 
     ctx.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
-    // Use aggressive JPEG compression for low bandwidth
-    const dataUrl = this.canvasElement.toDataURL("image/jpeg", 0.3);
+    // Use aggressive JPEG compression to prevent memory buildup in WebSocket buffers
+    const dataUrl = this.canvasElement.toDataURL("image/jpeg", 0.15);
     const base64Data = dataUrl.split(",")[1];
 
     this.sessionPromise.then(session => {
