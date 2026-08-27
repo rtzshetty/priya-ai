@@ -8,6 +8,7 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== "unde
 export class LiveSessionManager {
   private ai!: GoogleGenAI;
   private sessionPromise: Promise<any> | null = null;
+  private liveSession: any = null;
   private audioContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private processor: ScriptProcessorNode | null = null;
@@ -130,11 +131,13 @@ export class LiveSessionManager {
         }
         const base64Data = btoa(binary);
 
-        this.sessionPromise.then(session => {
-          session.sendRealtimeInput({
-            audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-          });
-        }).catch(err => console.warn("Error sending audio", err));
+        if (this.liveSession) {
+          try {
+            this.liveSession.sendRealtimeInput({
+              audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
+            });
+          } catch(err) { console.warn("Error sending audio", err); }
+        }
       };
 
       // Create Voice Isolation Filters (Bandpass-like effect for human voice range ~300Hz to 3400Hz)
@@ -155,6 +158,7 @@ export class LiveSessionManager {
 
       // Connect to Live API
       this.sessionPromise = this.ai.live.connect({
+
         model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
@@ -206,8 +210,9 @@ export class LiveSessionManager {
           onopen: () => {
             console.log("Live API Connected");
             // Handshake buffer: wait a tiny bit for backend to settle
-            setTimeout(() => {
+            setTimeout(async () => {
               this.isConnected = true;
+              this.liveSession = this.sessionPromise ? await this.sessionPromise : null;
               this.onStateChange("listening");
             }, 500);
           },
@@ -245,15 +250,15 @@ export class LiveSessionManager {
                   if (args.fact) {
                     saveUserMemory(userName, args.fact);
                     // Send tool response
-                    this.sessionPromise?.then(session => {
-                       session.sendToolResponse({
+                    if (this.liveSession) {
+                       this.liveSession.sendToolResponse({
                          functionResponses: [{
                            name: call.name,
                            id: call.id,
                            response: { success: true, message: "Fact saved successfully." }
                          }]
                        });
-                    });
+                    }
                   }
                 } else if (call.name === "singSong") {
                   const args = call.args as any;
@@ -267,27 +272,27 @@ export class LiveSessionManager {
                         const audio = new Audio(`data:${data.mimeType};base64,${data.audio}`);
                         audio.play().catch(e => console.error("Error playing song:", e));
                         
-                        this.sessionPromise?.then(session => {
-                          session.sendToolResponse({
+                        if (this.liveSession) {
+                          this.liveSession.sendToolResponse({
                             functionResponses: [{
                               name: call.name,
                               id: call.id,
                               response: { success: true, message: "Song played successfully." }
                             }]
                           });
-                        });
+                        }
                       }
                     })
                     .catch(err => {
-                      this.sessionPromise?.then(session => {
-                        session.sendToolResponse({
+                      if (this.liveSession) {
+                        this.liveSession.sendToolResponse({
                           functionResponses: [{
                             name: call.name,
                             id: call.id,
                             response: { success: false, error: err.message }
                           }]
                         });
-                      });
+                      }
                     });
                   });
                 } else if (call.name === "executeBrowserAction") {
@@ -321,15 +326,15 @@ export class LiveSessionManager {
                   this.onCommand(url);
                   
                   // Send tool response
-                  this.sessionPromise?.then(session => {
-                     session.sendToolResponse({
+                  if (this.liveSession) {
+                     this.liveSession.sendToolResponse({
                        functionResponses: [{
                          name: call.name,
                          id: call.id,
                          response: { result: "Action executed successfully in the browser." }
                        }]
                      });
-                  });
+                  }
                 }
               }
             }
@@ -429,6 +434,10 @@ export class LiveSessionManager {
     this.stopPlayback();
     this.stopScreenShare();
     
+    if (this.liveSession) {
+      try { this.liveSession.close(); } catch (e) {}
+      this.liveSession = null;
+    }
     if (this.sessionPromise) {
       this.sessionPromise.then(session => session.close()).catch(() => {});
       this.sessionPromise = null;
@@ -439,15 +448,22 @@ export class LiveSessionManager {
   }
 
   sendText(text: string) {
-    if (this.sessionPromise) {
-      this.sessionPromise.then(session => {
-        session.sendRealtimeInput({ text });
-      });
+    if (this.liveSession) {
+      try {
+        this.liveSession.sendRealtimeInput({ text });
+      } catch (err) {}
     }
   }
 
   async startScreenShare() {
     this.stopScreenShare(); // Clear any existing screen share session to prevent interval overlaps and memory leaks
+    
+    // Check for webview/median compatibility (mobile webviews often do not support getDisplayMedia)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      console.warn("Screen sharing is not supported on this device/browser (likely a mobile WebView).");
+      return false;
+    }
+
     try {
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
@@ -497,11 +513,13 @@ export class LiveSessionManager {
     const dataUrl = this.canvasElement.toDataURL("image/jpeg", 0.15);
     const base64Data = dataUrl.split(",")[1];
 
-    this.sessionPromise.then(session => {
-      session.sendRealtimeInput({
-        video: { data: base64Data, mimeType: "image/jpeg" }
-      });
-    }).catch(err => console.warn("Error sending video frame", err));
+    if (this.liveSession) {
+      try {
+        this.liveSession.sendRealtimeInput({
+          video: { data: base64Data, mimeType: "image/jpeg" }
+        });
+      } catch (err) { console.warn("Error sending video frame", err); }
+    }
   }
 
   stopScreenShare() {

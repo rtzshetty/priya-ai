@@ -120,6 +120,8 @@ export default function App() {
         const success = await liveSessionRef.current.startScreenShare();
         if (success) {
           setIsScreenSharing(true);
+        } else {
+          alert("Screen sharing is not supported on this device or in this app wrapper.");
         }
       }
     }
@@ -413,7 +415,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#050505] text-white flex flex-col items-center justify-between font-sans relative overflow-hidden m-0 p-0">
+    <div className="h-[100dvh] w-screen bg-[#050505] text-white flex flex-col items-center justify-between font-sans relative overflow-hidden m-0 p-0 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
       {showPermissionModal && (
         <PermissionModal 
           onClose={() => setShowPermissionModal(false)} 
