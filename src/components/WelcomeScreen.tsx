@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User as UserIcon, ArrowRight, ArrowLeft, Mail, Lock } from 'lucide-react';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, isFirebaseConfigured } from '../lib/firebase';
 import { 
   signInWithPopup,
   signInWithRedirect,
@@ -19,20 +19,28 @@ interface WelcomeScreenProps {
 export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
   React.useEffect(() => {
     // Handle redirect result for WebViews (Median)
-    getRedirectResult(auth).then((result) => {
-      if (result && result.user) {
-        let finalName = 'User';
-        if (result.user.displayName) {
-          finalName = result.user.displayName.split(' ')[0];
-        } else if (result.user.email) {
-          finalName = deriveNameFromEmail(result.user.email);
+    if (isFirebaseConfigured) {
+      getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+          let finalName = 'User';
+          if (result.user.displayName) {
+            finalName = result.user.displayName.split(' ')[0];
+          } else if (result.user.email) {
+            let derived = result.user.email.split('@')[0];
+            derived = derived.split(/[._+-]/)[0];
+            finalName = derived.charAt(0).toUpperCase() + derived.slice(1);
+          }
+          onNameSubmit(finalName);
         }
-        onNameSubmit(finalName);
-      }
-    }).catch((err) => {
-      console.error("Redirect auth error:", err);
-      setError("Google Sign-in failed. Please try again.");
-    });
+      }).catch((err) => {
+        console.error("Redirect auth error:", err);
+        if (err.message && (err.message.toLowerCase().includes('user agent') || err.message.toLowerCase().includes('useragent'))) {
+          setError("Google Login is blocked in this webview. Please use Email or Guest login.");
+        } else {
+          setError("Google Sign-in failed. Please try again.");
+        }
+      });
+    }
   }, []);
   const [isLogin, setIsLogin] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
@@ -53,6 +61,11 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
+    
+    if (!isFirebaseConfigured) {
+      setError("Firebase is not configured. Please continue as guest.");
+      return;
+    }
     e.preventDefault();
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
@@ -127,8 +140,24 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isFirebaseConfigured) {
+      setError("Firebase is not configured. Please continue as guest.");
+      return;
+    }
     try {
       let result;
+      
+      const isMedian = typeof window !== 'undefined' && 
+        (navigator.userAgent.toLowerCase().includes('median') || 
+         navigator.userAgent.toLowerCase().includes('gonative') || 
+         (window as any).median != null || 
+         (window as any).gonative != null);
+
+      if (isMedian) {
+        setError("Google Login requires a native plugin in Median apps. Please use Email login or Guest mode.");
+        return;
+      }
+
       try {
         result = await signInWithPopup(auth, googleProvider);
       } catch (popupErr: any) {

@@ -12,12 +12,14 @@ const firebaseConfig = {
 };
 
 export let auth: ReturnType<typeof getAuth>;
+export let isFirebaseConfigured = false;
 export let googleProvider: GoogleAuthProvider;
 
 try {
   if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key_here') {
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    isFirebaseConfigured = true;
     googleProvider = new GoogleAuthProvider();
   } else {
     console.warn("Firebase configuration is missing or invalid. Please check your environment variables.");
