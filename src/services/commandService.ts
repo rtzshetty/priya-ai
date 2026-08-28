@@ -102,31 +102,7 @@ export async function processCommand(command: string): Promise<{
       clock: 'com.google.android.deskclock',
       jiohoster: 'in.startv.hotstar',
       jiohotstar: 'in.startv.hotstar',
-      hotstar: 'in.startv.hotstar',
-      netflix: 'com.netflix.mediaclient',
-      primevideo: 'com.amazon.avod.thirdpartyclient',
-      snapchat: 'com.snapchat.android',
-      telegram: 'org.telegram.messenger',
-      linkedin: 'com.linkedin.android',
-      tiktok: 'com.zhiliaoapp.musically',
-      pinterest: 'com.pinterest',
-      reddit: 'com.reddit.frontpage',
-      zomato: 'com.application.zomato',
-      swiggy: 'in.swiggy.android',
-      paytm: 'net.one97.paytm',
-      phonepe: 'com.phonepe.app',
-      gpay: 'com.google.android.apps.nbu.paisa.user',
-      uber: 'com.ubercab',
-      ola: 'com.olacabs.customer',
-      flipkart: 'com.flipkart.android',
-      amazon: 'in.amazon.mShop.android.shopping',
-      myntra: 'com.myntra.android',
-      camera: 'intent:camera',
-      settings: 'intent:settings',
-      contacts: 'com.google.android.contacts',
-      photos: 'com.google.android.apps.photos',
-      gallery: 'com.sec.android.gallery3d',
-      playstore: 'com.android.vending'
+      hotstar: 'in.startv.hotstar'
     };
 
     if (Capacitor.isNativePlatform()) {
@@ -146,12 +122,16 @@ export async function processCommand(command: string): Promise<{
        const packageName = appPackages[targetLower];
        let intentUrl = `intent://#Intent;package=${packageName};end`;
        
-       if (packageName === 'intent:camera') {
-           intentUrl = `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`;
-       } else if (packageName === 'intent:settings') {
-           intentUrl = `intent:#Intent;action=android.settings.SETTINGS;end`;
-       } else {
-           intentUrl = `intent:#Intent;package=${packageName};end`;
+       if (targetLower === 'youtube') {
+           intentUrl = `intent://www.youtube.com/#Intent;package=com.google.android.youtube;scheme=https;end`;
+       } else if (targetLower === 'instagram') {
+           intentUrl = `intent://www.instagram.com/#Intent;package=com.instagram.android;scheme=https;end`;
+       } else if (targetLower === 'spotify') {
+           intentUrl = `intent://open.spotify.com/#Intent;package=com.spotify.music;scheme=https;end`;
+       } else if (targetLower === 'whatsapp') {
+           intentUrl = `intent://wa.me/#Intent;package=com.whatsapp;scheme=https;end`;
+       } else if (targetLower === 'jiohoster' || targetLower === 'jiohotstar' || targetLower === 'hotstar') {
+           intentUrl = `intent://www.hotstar.com/#Intent;package=in.startv.hotstar;scheme=https;end`;
        }
        
        return {
