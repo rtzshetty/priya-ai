@@ -93,33 +93,6 @@ export default function App() {
     }
   }, [isMuted]);
 
-  const [micPermissionState, setMicPermissionState] = useState<'granted' | 'prompt' | 'denied' | 'unknown'>('unknown');
-
-  useEffect(() => {
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'microphone' as PermissionName })
-        .then(status => {
-          setMicPermissionState(status.state as any);
-          status.onchange = () => setMicPermissionState(status.state as any);
-        })
-        .catch(() => {
-          setMicPermissionState('unknown');
-        });
-    }
-  }, []);
-
-  const requestMicPermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop());
-      setMicPermissionState('granted');
-    } catch (err: any) {
-      setErrorType("PERMISSION_DENIED");
-      setShowPermissionModal(true);
-      setMicPermissionState('denied');
-    }
-  };
-
   const [showTextInput, setShowTextInput] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [showPermissionModal, setShowPermissionModal] = useState(false);
@@ -723,26 +696,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {!isSessionActive && !showTextInput && micPermissionState !== 'granted' && (
-          <button 
-            onClick={requestMicPermission}
-            className="mb-4 px-6 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 rounded-full text-sm font-medium border border-violet-500/30 transition-all shadow-lg flex items-center gap-2"
-          >
-            <Mic size={16} />
-            Allow Microphone Access
-          </button>
-        )}
-
-        {!isSessionActive && !showTextInput && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-white/50 text-xs tracking-wider uppercase font-mono mb-2"
-          >
-            Please use your microphone to speak
-          </motion.div>
-        )}
-
         <div className="flex items-center gap-4">
           <button
             onClick={toggleListening}
@@ -763,7 +716,7 @@ export default function App() {
             ) : (
               <>
                 <Mic size={20} className="group-hover:animate-bounce" />
-                <span>Use Microphone</span>
+                <span>Start Session</span>
               </>
             )}
           </button>

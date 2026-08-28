@@ -11,24 +11,6 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-export let auth: ReturnType<typeof getAuth>;
-export let isFirebaseConfigured = false;
-export let googleProvider: GoogleAuthProvider;
-
-try {
-  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'your_api_key_here') {
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    isFirebaseConfigured = true;
-    googleProvider = new GoogleAuthProvider();
-  } else {
-    console.warn("Firebase configuration is missing or invalid. Please check your environment variables.");
-    // Provide dummy objects to prevent app crash on load
-    auth = { currentUser: null } as any;
-    googleProvider = {} as any;
-  }
-} catch (error) {
-  console.error("Firebase initialization failed:", error);
-  auth = { currentUser: null } as any;
-  googleProvider = {} as any;
-}
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
