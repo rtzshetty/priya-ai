@@ -144,7 +144,7 @@ export async function processCommand(command: string): Promise<{
       }
     } else if (/android/i.test(navigator.userAgent) && appPackages[targetLower]) {
        const packageName = appPackages[targetLower];
-       let intentUrl = `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${packageName};end`;
+       let intentUrl = `intent://#Intent;package=${packageName};end`;
        
        if (packageName === 'intent:camera') {
            intentUrl = `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`;
