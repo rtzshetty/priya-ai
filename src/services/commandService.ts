@@ -150,16 +150,8 @@ export async function processCommand(command: string): Promise<{
            intentUrl = `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`;
        } else if (packageName === 'intent:settings') {
            intentUrl = `intent:#Intent;action=android.settings.SETTINGS;end`;
-       } else if (targetLower === 'youtube') {
-           intentUrl = `intent://www.youtube.com/#Intent;package=com.google.android.youtube;scheme=https;end`;
-       } else if (targetLower === 'instagram') {
-           intentUrl = `intent://www.instagram.com/#Intent;package=com.instagram.android;scheme=https;end`;
-       } else if (targetLower === 'spotify') {
-           intentUrl = `intent://open.spotify.com/#Intent;package=com.spotify.music;scheme=https;end`;
-       } else if (targetLower === 'whatsapp') {
-           intentUrl = `intent://wa.me/#Intent;package=com.whatsapp;scheme=https;end`;
-       } else if (targetLower === 'jiohoster' || targetLower === 'jiohotstar' || targetLower === 'hotstar') {
-           intentUrl = `intent://www.hotstar.com/#Intent;package=in.startv.hotstar;scheme=https;end`;
+       } else {
+           intentUrl = `intent:#Intent;package=${packageName};end`;
        }
        
        return {
