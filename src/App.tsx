@@ -255,7 +255,7 @@ export default function App() {
       setAppState("idle");
 
       if (commandResult.url) {
-        if (commandResult.url.startsWith("tel:") || commandResult.url.startsWith("mailto:")) {
+        if (commandResult.url.startsWith("tel:") || commandResult.url.startsWith("mailto:") || commandResult.url.startsWith("intent:")) {
           window.location.href = commandResult.url;
         } else {
           // Open immediately without setTimeout to prevent popup blockers
@@ -374,7 +374,11 @@ export default function App() {
             }
           } else {
             // DO NOT use setTimeout here as it will trigger browser popup blockers.
-            window.open(url, "_blank");
+            if (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("intent:")) {
+              window.location.href = url;
+            } else {
+              window.open(url, "_blank");
+            }
           }
         };
 

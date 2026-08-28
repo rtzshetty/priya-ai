@@ -85,24 +85,24 @@ export async function processCommand(command: string): Promise<{
   const openMatch = lowerCmd.match(/^open\s+(.+)$/);
   if (openMatch) {
     let targetName = openMatch[1].trim().replace(/\s+app$/, ""); // remove " app" if present
+    const targetLower = targetName.toLowerCase().replace(/\s+/g, "");
     
-    if (Capacitor.isNativePlatform()) {
-      const targetLower = targetName.toLowerCase().replace(/\s+/g, "");
-      const appPackages: Record<string, string> = {
-        youtube: 'com.google.android.youtube',
-        spotify: 'com.spotify.music',
-        whatsapp: 'com.whatsapp',
-        instagram: 'com.instagram.android',
-        facebook: 'com.facebook.katana',
-        twitter: 'com.twitter.android',
-        x: 'com.twitter.android',
-        gmail: 'com.google.android.gm',
-        maps: 'com.google.android.apps.maps',
-        chrome: 'com.android.chrome',
-        calculator: 'com.google.android.calculator',
-        clock: 'com.google.android.deskclock'
-      };
+    const appPackages: Record<string, string> = {
+      youtube: 'com.google.android.youtube',
+      spotify: 'com.spotify.music',
+      whatsapp: 'com.whatsapp',
+      instagram: 'com.instagram.android',
+      facebook: 'com.facebook.katana',
+      twitter: 'com.twitter.android',
+      x: 'com.twitter.android',
+      gmail: 'com.google.android.gm',
+      maps: 'com.google.android.apps.maps',
+      chrome: 'com.android.chrome',
+      calculator: 'com.google.android.calculator',
+      clock: 'com.google.android.deskclock'
+    };
 
+    if (Capacitor.isNativePlatform()) {
       if (appPackages[targetLower]) {
          try {
            await AppLauncher.openUrl({ url: appPackages[targetLower] });
@@ -115,6 +115,25 @@ export async function processCommand(command: string): Promise<{
            // Fall through to web search
          }
       }
+    } else if (/android/i.test(navigator.userAgent) && appPackages[targetLower]) {
+       const packageName = appPackages[targetLower];
+       let intentUrl = `intent://#Intent;package=${packageName};end`;
+       
+       if (targetLower === 'youtube') {
+           intentUrl = `intent://www.youtube.com/#Intent;package=com.google.android.youtube;scheme=https;end`;
+       } else if (targetLower === 'instagram') {
+           intentUrl = `intent://www.instagram.com/#Intent;package=com.instagram.android;scheme=https;end`;
+       } else if (targetLower === 'spotify') {
+           intentUrl = `intent://open.spotify.com/#Intent;package=com.spotify.music;scheme=https;end`;
+       } else if (targetLower === 'whatsapp') {
+           intentUrl = `intent://wa.me/#Intent;package=com.whatsapp;scheme=https;end`;
+       }
+       
+       return {
+         action: `Opening ${targetName} for you...`,
+         url: intentUrl,
+         isBrowserAction: true
+       };
     }
 
     let website = targetName.replace(/\s+/g, "");
