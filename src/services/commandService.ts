@@ -99,7 +99,10 @@ export async function processCommand(command: string): Promise<{
       maps: 'com.google.android.apps.maps',
       chrome: 'com.android.chrome',
       calculator: 'com.google.android.calculator',
-      clock: 'com.google.android.deskclock'
+      clock: 'com.google.android.deskclock',
+      jiohoster: 'in.startv.hotstar',
+      jiohotstar: 'in.startv.hotstar',
+      hotstar: 'in.startv.hotstar'
     };
 
     if (Capacitor.isNativePlatform()) {
@@ -127,6 +130,8 @@ export async function processCommand(command: string): Promise<{
            intentUrl = `intent://open.spotify.com/#Intent;package=com.spotify.music;scheme=https;end`;
        } else if (targetLower === 'whatsapp') {
            intentUrl = `intent://wa.me/#Intent;package=com.whatsapp;scheme=https;end`;
+       } else if (targetLower === 'jiohoster' || targetLower === 'jiohotstar' || targetLower === 'hotstar') {
+           intentUrl = `intent://www.hotstar.com/#Intent;package=in.startv.hotstar;scheme=https;end`;
        }
        
        return {
