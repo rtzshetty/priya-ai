@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User as UserIcon, ArrowRight, ArrowLeft, Mail, Lock } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
 import { 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   sendEmailVerification, 
@@ -15,6 +17,23 @@ interface WelcomeScreenProps {
 }
 
 export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
+  React.useEffect(() => {
+    // Handle redirect result for WebViews (Median)
+    getRedirectResult(auth).then((result) => {
+      if (result && result.user) {
+        let finalName = 'User';
+        if (result.user.displayName) {
+          finalName = result.user.displayName.split(' ')[0];
+        } else if (result.user.email) {
+          finalName = deriveNameFromEmail(result.user.email);
+        }
+        onNameSubmit(finalName);
+      }
+    }).catch((err) => {
+      console.error("Redirect auth error:", err);
+      setError("Google Sign-in failed. Please try again.");
+    });
+  }, []);
   const [isLogin, setIsLogin] = useState(false);
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -109,7 +128,17 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
+      let result;
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupErr: any) {
+        if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/popup-closed-by-user' || popupErr.message.toLowerCase().includes('webview')) {
+          console.log("Popup blocked or in webview, falling back to redirect...");
+          await signInWithRedirect(auth, googleProvider);
+          return; // The page will redirect
+        }
+        throw popupErr;
+      }
       
       // Attempt to derive a clean first name from display name or email
       let finalName = 'User';
@@ -136,7 +165,7 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
   };
 
   return (
-    <div className="h-[100dvh] w-screen bg-[#050505] text-white flex flex-col items-center justify-center font-sans relative overflow-hidden">
+    <div className="h-[100dvh] w-screen bg-[#050505] text-white flex flex-col items-center justify-center font-sans relative overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-violet-900/20 blur-[80px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-pink-900/20 blur-[80px] rounded-full" />
