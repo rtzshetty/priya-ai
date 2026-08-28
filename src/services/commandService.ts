@@ -102,7 +102,31 @@ export async function processCommand(command: string): Promise<{
       clock: 'com.google.android.deskclock',
       jiohoster: 'in.startv.hotstar',
       jiohotstar: 'in.startv.hotstar',
-      hotstar: 'in.startv.hotstar'
+      hotstar: 'in.startv.hotstar',
+      netflix: 'com.netflix.mediaclient',
+      primevideo: 'com.amazon.avod.thirdpartyclient',
+      snapchat: 'com.snapchat.android',
+      telegram: 'org.telegram.messenger',
+      linkedin: 'com.linkedin.android',
+      tiktok: 'com.zhiliaoapp.musically',
+      pinterest: 'com.pinterest',
+      reddit: 'com.reddit.frontpage',
+      zomato: 'com.application.zomato',
+      swiggy: 'in.swiggy.android',
+      paytm: 'net.one97.paytm',
+      phonepe: 'com.phonepe.app',
+      gpay: 'com.google.android.apps.nbu.paisa.user',
+      uber: 'com.ubercab',
+      ola: 'com.olacabs.customer',
+      flipkart: 'com.flipkart.android',
+      amazon: 'in.amazon.mShop.android.shopping',
+      myntra: 'com.myntra.android',
+      camera: 'intent:camera',
+      settings: 'intent:settings',
+      contacts: 'com.google.android.contacts',
+      photos: 'com.google.android.apps.photos',
+      gallery: 'com.sec.android.gallery3d',
+      playstore: 'com.android.vending'
     };
 
     if (Capacitor.isNativePlatform()) {
@@ -122,7 +146,11 @@ export async function processCommand(command: string): Promise<{
        const packageName = appPackages[targetLower];
        let intentUrl = `intent://#Intent;package=${packageName};end`;
        
-       if (targetLower === 'youtube') {
+       if (packageName === 'intent:camera') {
+           intentUrl = `intent:#Intent;action=android.media.action.STILL_IMAGE_CAMERA;end`;
+       } else if (packageName === 'intent:settings') {
+           intentUrl = `intent:#Intent;action=android.settings.SETTINGS;end`;
+       } else if (targetLower === 'youtube') {
            intentUrl = `intent://www.youtube.com/#Intent;package=com.google.android.youtube;scheme=https;end`;
        } else if (targetLower === 'instagram') {
            intentUrl = `intent://www.instagram.com/#Intent;package=com.instagram.android;scheme=https;end`;
