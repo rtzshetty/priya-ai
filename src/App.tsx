@@ -696,6 +696,16 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {!isSessionActive && !showTextInput && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-white/50 text-xs tracking-wider uppercase font-mono mb-2"
+          >
+            Please use your microphone to speak
+          </motion.div>
+        )}
+
         <div className="flex items-center gap-4">
           <button
             onClick={toggleListening}
@@ -716,7 +726,7 @@ export default function App() {
             ) : (
               <>
                 <Mic size={20} className="group-hover:animate-bounce" />
-                <span>Start Session</span>
+                <span>Use Microphone</span>
               </>
             )}
           </button>
