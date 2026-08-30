@@ -1,6 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AssistantMode, AssistantLanguage, getSystemInstruction, saveUserMemory } from "../utils/promptUtils";
 
+// Use VITE_ prefix for production builds (standard Vite behavior)
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
 let chatSession: any = null;
 
 export function resetPriyaSession() {
@@ -39,9 +42,6 @@ export interface PriyaResponse {
   songAudio?: string;
   songMimeType?: string;
 }
-
-// Use VITE_ prefix for production builds (standard Vite behavior)
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== "undefined" ? process.env.GEMINI_API_KEY : undefined);
 
 export async function getPriyaResponse(
   prompt: string, 

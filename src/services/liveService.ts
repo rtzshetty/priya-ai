@@ -3,7 +3,7 @@ import { processCommand } from "./commandService";
 import { AssistantMode, AssistantLanguage, getSystemInstruction, saveUserMemory } from "../utils/promptUtils";
 
 // Use VITE_ prefix for production builds (standard Vite behavior)
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== "undefined" ? process.env.GEMINI_API_KEY : undefined);
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
 export class LiveSessionManager {
   private ai!: GoogleGenAI;
