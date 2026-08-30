@@ -3,6 +3,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, LiveServerMessage, Modality, Type } from "@google/genai";
+import Razorpay from "razorpay";
+import crypto from "crypto";
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -189,6 +191,58 @@ async function startServer() {
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/create-order", async (req, res) => {
+    try {
+      const { amount, currency = "INR", receipt = "receipt_1" } = req.body;
+      if (!amount || amount < 100) {
+        return res.status(400).json({ error: "Amount must be at least 100 paise" });
+      }
+      
+      const razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || "",
+        key_secret: process.env.RAZORPAY_KEY_SECRET || "",
+      });
+
+      const options = {
+        amount,
+        currency,
+        receipt,
+      };
+      
+      const order = await razorpay.orders.create(options);
+      res.json(order);
+    } catch (e: any) {
+      if (e.statusCode === 401) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      res.status(500).json({ error: e.message || "Something went wrong" });
+    }
+  });
+
+  app.post("/api/verify-payment", (req, res) => {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+      
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const body = razorpay_order_id + "|" + razorpay_payment_id;
+      const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+        .update(body.toString())
+        .digest("hex");
+                                  
+      if (expectedSignature === razorpay_signature) {
+        res.json({ success: true, message: "Payment verified successfully" });
+      } else {
+        res.status(400).json({ success: false, error: "Invalid signature" });
+      }
+    } catch (e: any) {
+      res.status(500).json({ error: e.message || "Internal Server Error" });
     }
   });
 

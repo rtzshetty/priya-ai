@@ -35,6 +35,12 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!auth.app) {
+      setError('Firebase configuration is missing. Please add VITE_FIREBASE_API_KEY to your environment variables or continue as Guest.');
+      return;
+    }
+
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedPassword = password.trim();
     
@@ -108,6 +114,11 @@ export default function WelcomeScreen({ onNameSubmit }: WelcomeScreenProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!auth.app) {
+      setError('Firebase configuration is missing. Please add VITE_FIREBASE_API_KEY to your environment variables or continue as Guest.');
+      return;
+    }
+    
     try {
       const result = await signInWithPopup(auth, googleProvider);
       

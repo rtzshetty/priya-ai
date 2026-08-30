@@ -9,6 +9,7 @@ import VideoGenerator from "./components/VideoGenerator";
 import InteractiveMap from "./components/InteractiveMap";
 import WelcomeScreen from "./components/WelcomeScreen";
 import MoodTracker from "./components/MoodTracker";
+import RazorpayCheckout from "./components/RazorpayCheckout";
 import { playPCM } from "./utils/audioUtils";
 import { motion, AnimatePresence } from "motion/react";
 import { AssistantMode, AssistantLanguage } from "./utils/promptUtils";
@@ -491,6 +492,10 @@ export default function App() {
               >
                 Hinglish
               </button>
+            </div>
+            
+            <div className="hidden md:block">
+              <RazorpayCheckout />
             </div>
           </div>
         </div>

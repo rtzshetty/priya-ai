@@ -12,17 +12,27 @@ const firebaseConfig = {
 };
 
 let app;
-let auth: Auth;
+let auth: any = null;
 
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = initializeAuth(app, {
-    persistence: browserLocalPersistence,
-    popupRedirectResolver: browserPopupRedirectResolver,
-  });
+if (firebaseConfig.apiKey && firebaseConfig.apiKey !== 'undefined') {
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
+    auth = initializeAuth(app, {
+      persistence: browserLocalPersistence,
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  } else {
+    app = getApp();
+    auth = getAuth(app);
+  }
 } else {
-  app = getApp();
-  auth = getAuth(app);
+  console.warn("Firebase configuration is missing. Authentication features are disabled.");
+  // Provide a mock auth object so the app doesn't crash on import, 
+  // but attempting to use auth functions will throw errors that can be caught by the UI.
+  auth = {
+    currentUser: null,
+    onAuthStateChanged: () => () => {},
+  };
 }
 
 export { auth };
