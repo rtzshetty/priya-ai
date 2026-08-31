@@ -234,9 +234,16 @@ async function startServer() {
         return res.status(400).json({ error: "Amount must be at least 100 paise" });
       }
       
+      const key_id = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+      const key_secret = process.env.RAZORPAY_KEY_SECRET;
+
+      if (!key_id || !key_secret) {
+        return res.status(500).json({ error: "Razorpay credentials are not configured on the server." });
+      }
+
       const razorpay = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || "",
-        key_secret: process.env.RAZORPAY_KEY_SECRET || "",
+        key_id,
+        key_secret,
       });
 
       const options = {
@@ -248,8 +255,9 @@ async function startServer() {
       const order = await razorpay.orders.create(options);
       res.json(order);
     } catch (e: any) {
+      console.error("Create order error:", e);
       if (e.statusCode === 401) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({ error: "Unauthorized - Invalid Razorpay Keys" });
       }
       res.status(500).json({ error: e.message || "Something went wrong" });
     }

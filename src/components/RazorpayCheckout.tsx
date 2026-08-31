@@ -39,8 +39,17 @@ export default function RazorpayCheckout() {
       });
 
       if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error || "Failed to create order");
+        let errorMsg = "Failed to create order";
+        const contentType = orderResponse.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await orderResponse.json();
+          errorMsg = errorData.error || errorMsg;
+        } else {
+          const textData = await orderResponse.text();
+          console.error("Non-JSON error from server:", textData);
+          errorMsg = `Server error: ${textData.substring(0, 50)}...`;
+        }
+        throw new Error(errorMsg);
       }
 
       const orderData = await orderResponse.json();
