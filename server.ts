@@ -61,6 +61,39 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.post("/api/webhook/razorpay", express.text({ type: 'application/json' }), (req, res) => {
+    try {
+      const signature = req.headers['x-razorpay-signature'] as string;
+      const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+      if (!secret) {
+        return res.status(500).send("Webhook secret not configured");
+      }
+
+      const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(req.body)
+        .digest("hex");
+
+      if (expectedSignature === signature) {
+        // Parse the body now that we verified it
+        const event = JSON.parse(req.body);
+        
+        console.log(`Razorpay Webhook Event Received: ${event.event}`);
+        // Handle specific events like payment.authorized, payment.captured etc.
+        // e.g. if (event.event === 'payment.captured') { ... }
+
+        res.status(200).send("OK");
+      } else {
+        console.error("Razorpay webhook signature verification failed");
+        res.status(400).send("Invalid signature");
+      }
+    } catch (e: any) {
+      console.error("Webhook error:", e.message);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+
   app.use(express.json({ limit: '50mb' }));
 
   app.post("/api/chat", async (req, res) => {
