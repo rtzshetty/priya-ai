@@ -509,6 +509,19 @@ export default function App() {
               >
                 Physiological {!isPremium && <span className="text-[10px]">🔒</span>}
               </button>
+              <button
+                onClick={() => {
+                  if (isPremium) {
+                    setMode("professional");
+                  } else {
+                    setToastMessage("Professional Mode is a Premium feature. Please upgrade to access.");
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }
+                }}
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "professional" ? "bg-blue-500/30 text-blue-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
+              >
+                Professional {!isPremium && <span className="text-[10px]">🔒</span>}
+              </button>
             </div>
 
             <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10">

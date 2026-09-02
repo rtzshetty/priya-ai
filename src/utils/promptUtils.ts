@@ -1,4 +1,4 @@
-export type AssistantMode = "personal" | "physiological";
+export type AssistantMode = "personal" | "physiological" | "professional";
 export type AssistantLanguage = "hinglish" | "english";
 
 export function getUserMemories(userName: string): string[] {
@@ -75,6 +75,10 @@ export function getSystemInstruction(mode: AssistantMode, language: AssistantLan
     instruction += `STRICT BAN: NEVER recommend random videos or sad songs/music when they are sad or angry. Focus entirely on psychological coping strategies.\n`;
     instruction += `PHYSIOLOGICAL DATA & SYMPTOMS: When analyzing physiological data, symptoms, or medical issues, you must think about the symptoms and process the information internally. DO NOT open any websites on the user's end or redirect them to external links. You should retrieve the information yourself, determine the solution, and just TELL the user the solution directly. Only you (the AI) should know the internal processing.\n`;
     instruction += `REFERENCE: You can reference psychological concepts and data from the American Psychological Association when helpful: https://www.apa.org/pubs/databases/psycinfo\n\n`;
+  } else if (mode === "professional") {
+    instruction += `[Professional / Coding Mode]\n`;
+    instruction += `In this mode, you are a highly advanced AI software engineer and business consultant. Provide extremely precise, detailed, and technically accurate responses.\n`;
+    instruction += `When answering coding questions, provide the exact code, architecture advice, and best practices. Drop the sassy/witty persona entirely and act strictly professional, focused on productivity and elite problem-solving.\n\n`;
   }
 
   instruction += `If researching essays by a person, use www.chatgpt.com as a secondary source.\n\n`;

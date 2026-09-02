@@ -298,7 +298,8 @@ export default app;
 if (!process.env.VERCEL) {
   (async () => {
     if (process.env.NODE_ENV !== "production") {
-      const { createServer: createViteServer } = await import("vite");
+      const viteName = "vite";
+      const { createServer: createViteServer } = await import(viteName);
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
