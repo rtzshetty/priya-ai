@@ -481,15 +481,15 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <header className="absolute top-0 left-0 w-full flex justify-between items-center z-20 shrink-0 px-6 py-4 md:px-12 md:py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center font-bold text-sm">
+      <header className="absolute top-0 left-0 w-full flex justify-between items-start sm:items-center z-20 shrink-0 px-4 sm:px-6 py-4 md:px-12 md:py-6 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center font-bold text-sm shrink-0">
             P
           </div>
-          <h1 className="text-xl font-serif font-medium tracking-wide opacity-90 hidden sm:block">Priya</h1>
+          <h1 className="text-xl font-serif font-medium tracking-wide opacity-90 hidden sm:block shrink-0">Priya</h1>
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center ml-2 lg:ml-6 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
-            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center ml-2 lg:ml-6 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono overflow-x-auto custom-scrollbar pb-1 sm:pb-0 pr-4 sm:pr-0">
+            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10 shrink-0">
               <button
                 onClick={() => setMode("personal")}
                 className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "personal" ? "bg-violet-500/30 text-violet-300" : "text-white/50 hover:text-white/80"}`}
@@ -524,7 +524,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10">
+            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10 shrink-0">
               <button
                 onClick={() => setLanguage("english")}
                 className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${language === "english" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
@@ -539,19 +539,19 @@ export default function App() {
               </button>
             </div>
             
-            <div className="hidden md:block">
+            <div className="shrink-0 pt-1 sm:pt-0 pb-1 sm:pb-0">
               {!isPremium ? (
                 <RazorpayCheckout onPaymentSuccess={handlePaymentSuccess} />
               ) : (
-                <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/50 rounded-full text-xs font-medium">
-                  🌟 Premium Member
+                <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/50 rounded-full text-xs font-medium whitespace-nowrap">
+                  🌟 Premium
                 </div>
               )}
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
           {mode === "physiological" && (
             <button
               onClick={() => setShowMoodTracker(true)}
@@ -661,16 +661,16 @@ export default function App() {
         </div>
       </div>
 
-      <main className="absolute inset-0 flex flex-row items-center justify-between w-full h-full z-10 overflow-hidden pt-20 pb-24 px-4 md:px-12 pointer-events-none">
-        <div className="flex w-[30%] lg:w-[25%] h-full flex-col justify-center gap-4 z-10">
+      <main className="absolute inset-0 flex flex-row items-center justify-between w-full h-full z-10 overflow-hidden pt-24 pb-32 px-4 md:px-12 pointer-events-none">
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex md:w-[25%] h-auto md:h-full flex-col justify-center gap-4 z-10 text-center md:text-left">
           <div className="h-6">
             <AnimatePresence>
               {appState === "processing" && (
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex items-center gap-2 text-cyan-300/80 text-sm md:text-base italic font-serif"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center justify-center md:justify-start gap-2 text-cyan-300/80 text-sm md:text-base italic font-serif"
                 >
                   <Loader2 size={16} className="animate-spin" />
                   Replying...
@@ -681,18 +681,20 @@ export default function App() {
         </div>
 
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <Visualizer state={appState} />
+          <div className="w-full max-w-[300px] sm:max-w-md md:max-w-lg lg:max-w-2xl aspect-square relative flex items-center justify-center">
+            <Visualizer state={appState} />
+          </div>
         </div>
 
-        <div className="flex w-[30%] lg:w-[25%] h-full flex-col justify-center gap-4 z-10">
-          <div className="h-6 flex justify-end">
+        <div className="absolute top-32 left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex md:w-[25%] h-auto md:h-full flex-col justify-center gap-4 z-10 text-center md:text-right">
+          <div className="h-6 flex justify-center md:justify-end">
             <AnimatePresence>
               {appState === "listening" && (
                 <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="flex items-center gap-2 text-violet-300/80 text-sm md:text-base italic"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center justify-center md:justify-end gap-2 text-violet-300/80 text-sm md:text-base italic"
                 >
                   <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
                   Listening...
@@ -756,11 +758,11 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={toggleListening}
             className={`
-              group relative flex items-center gap-3 px-8 py-4 rounded-full font-medium tracking-wide transition-all duration-300 shadow-2xl
+              group relative flex items-center gap-2 sm:gap-3 px-6 py-3 sm:px-8 sm:py-4 rounded-full font-medium tracking-wide transition-all duration-300 shadow-2xl text-sm sm:text-base
               ${
                 isSessionActive
                   ? "bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
@@ -770,12 +772,12 @@ export default function App() {
           >
             {isSessionActive ? (
               <>
-                <MicOff size={20} />
+                <MicOff size={18} className="sm:w-5 sm:h-5" />
                 <span>End Session</span>
               </>
             ) : (
               <>
-                <Mic size={20} className="group-hover:animate-bounce" />
+                <Mic size={18} className="sm:w-5 sm:h-5 group-hover:animate-bounce" />
                 <span>Start Session</span>
               </>
             )}
@@ -784,24 +786,24 @@ export default function App() {
           {!isSessionActive && (
             <button
               onClick={() => setShowTextInput(!showTextInput)}
-              className="p-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shadow-2xl"
+              className="p-3 sm:p-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors shadow-2xl"
               title="Type instead"
             >
-              <Keyboard size={20} className="opacity-70" />
+              <Keyboard size={18} className="sm:w-5 sm:h-5 opacity-70" />
             </button>
           )}
 
           {isSessionActive && (
             <button
               onClick={toggleScreenShare}
-              className={`p-4 rounded-full transition-colors shadow-2xl ${
+              className={`p-3 sm:p-4 rounded-full transition-colors shadow-2xl ${
                 isScreenSharing 
                   ? "bg-blue-500/20 border border-blue-500/50 text-blue-400 hover:bg-blue-500/30 animate-pulse" 
                   : "bg-white/5 border border-white/10 hover:bg-white/10"
               }`}
               title={isScreenSharing ? "Stop Screen Share" : "Share Screen"}
             >
-              <Monitor size={20} className={!isScreenSharing ? "opacity-70" : ""} />
+              <Monitor size={18} className={`sm:w-5 sm:h-5 ${!isScreenSharing ? "opacity-70" : ""}`} />
             </button>
           )}
         </div>
