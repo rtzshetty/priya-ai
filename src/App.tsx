@@ -40,6 +40,18 @@ export default function App() {
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem("priya_user_name") || "";
   });
+  
+  const [isPremium, setIsPremium] = useState<boolean>(() => {
+    return localStorage.getItem("priya_is_premium") === "true";
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handlePaymentSuccess = () => {
+    localStorage.setItem("priya_is_premium", "true");
+    setIsPremium(true);
+    setToastMessage("Welcome to Premium! You now have access to Physiological Mode.");
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const handleNameSubmit = (name: string) => {
     localStorage.setItem("priya_user_name", name);
@@ -456,6 +468,19 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -20, x: "-50%" }}
+            className="absolute top-20 left-1/2 z-50 px-4 py-2 bg-neutral-800/90 border border-white/10 text-white text-xs sm:text-sm rounded-lg shadow-xl whitespace-nowrap text-center"
+          >
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <header className="absolute top-0 left-0 w-full flex justify-between items-center z-20 shrink-0 px-6 py-4 md:px-12 md:py-6">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center font-bold text-sm">
@@ -472,10 +497,17 @@ export default function App() {
                 Personal
               </button>
               <button
-                onClick={() => setMode("physiological")}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "physiological" ? "bg-teal-500/30 text-teal-300" : "text-white/50 hover:text-white/80"}`}
+                onClick={() => {
+                  if (isPremium) {
+                    setMode("physiological");
+                  } else {
+                    setToastMessage("Physiological Mode is a Premium feature. Please upgrade to access.");
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }
+                }}
+                className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "physiological" ? "bg-teal-500/30 text-teal-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
               >
-                Physiological
+                Physiological {!isPremium && <span className="text-[10px]">🔒</span>}
               </button>
             </div>
 
@@ -495,7 +527,13 @@ export default function App() {
             </div>
             
             <div className="hidden md:block">
-              <RazorpayCheckout />
+              {!isPremium ? (
+                <RazorpayCheckout onPaymentSuccess={handlePaymentSuccess} />
+              ) : (
+                <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/50 rounded-full text-xs font-medium">
+                  🌟 Premium Member
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -49,12 +49,18 @@ class AsyncQueue {
 
 const apiQueue = new AsyncQueue(10); // Distribute load evenly, limit concurrent requests
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: { 'User-Agent': 'aistudio-build' }
+let _ai;
+function getAI() {
+  if (!_ai) {
+    _ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY || "dummy_key_to_prevent_crash",
+      httpOptions: {
+        headers: { 'User-Agent': 'aistudio-build' }
+      }
+    });
   }
-});
+  return _ai;
+}
 
   const app = express();
   const PORT = 3000;
@@ -143,7 +149,7 @@ const ai = new GoogleGenAI({
           retrievalConfig: { latLng: { latitude: location.lat, longitude: location.lng } }
         } : undefined;
 
-        const chatSession = ai.chats.create({
+        const chatSession = getAI().chats.create({
           model: "gemini-3.1-flash-preview",
           config: { systemInstruction, tools, toolConfig },
           history: formattedHistory,
@@ -177,7 +183,7 @@ const ai = new GoogleGenAI({
     try {
       await apiQueue.enqueue(async () => {
         const { text } = req.body;
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
           model: "gemini-3.1-flash-tts-preview",
           contents: [{ parts: [{ text }] }],
           config: {
@@ -197,7 +203,7 @@ const ai = new GoogleGenAI({
     try {
       await apiQueue.enqueue(async () => {
         const { prompt } = req.body;
-        const response = await ai.models.generateContentStream({
+        const response = await getAI().models.generateContentStream({
           model: "lyria-3-clip-preview",
           contents: prompt,
         });
@@ -378,7 +384,7 @@ if (!process.env.VERCEL) {
         ]
       }];
 
-      const session = await ai.live.connect({
+      const session = await getAI().live.connect({
         model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],

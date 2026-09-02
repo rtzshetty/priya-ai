@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Loader2, CreditCard } from "lucide-react";
 
-export default function RazorpayCheckout() {
+export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSuccess?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -82,6 +82,7 @@ export default function RazorpayCheckout() {
             const verifyData = await verifyResponse.json();
             if (verifyData.success) {
               setPaymentStatus("success");
+              if (onPaymentSuccess) onPaymentSuccess();
             } else {
               throw new Error("Invalid signature");
             }
