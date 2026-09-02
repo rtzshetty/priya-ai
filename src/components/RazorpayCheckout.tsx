@@ -32,7 +32,7 @@ export default function RazorpayCheckout() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: 50000, // 500.00 INR
+          amount: 5000, // 50.00 INR
           currency: "INR",
           receipt: "receipt_" + Date.now(),
         }),
@@ -130,7 +130,7 @@ export default function RazorpayCheckout() {
             className="flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-full text-[10px] sm:text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <CreditCard size={12} />}
-            Upgrade (₹500)
+            Upgrade (₹50)
           </button>
           
           {paymentStatus === "error" && (

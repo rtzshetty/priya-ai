@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { WebSocketServer } from "ws";
 import { GoogleGenAI, LiveServerMessage, Modality, Type } from "@google/genai";
 import Razorpay from "razorpay";
@@ -57,7 +56,6 @@ const ai = new GoogleGenAI({
   }
 });
 
-async function startServer() {
   const app = express();
   const PORT = 3000;
 
@@ -287,23 +285,31 @@ async function startServer() {
     }
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
 
-  const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+// Export for Vercel
+export default app;
+
+if (!process.env.VERCEL) {
+  (async () => {
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    const server = app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+
 
   const wss = new WebSocketServer({ noServer: true });
 
@@ -429,6 +435,6 @@ async function startServer() {
       clientWs.close();
     }
   });
-}
 
-startServer();
+  })();
+}
