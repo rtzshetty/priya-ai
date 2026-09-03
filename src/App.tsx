@@ -9,7 +9,7 @@ import VideoGenerator from "./components/VideoGenerator";
 import InteractiveMap from "./components/InteractiveMap";
 import WelcomeScreen from "./components/WelcomeScreen";
 import MoodTracker from "./components/MoodTracker";
-import RazorpayCheckout from "./components/RazorpayCheckout";
+import PlayStoreCheckout from "./components/PlayStoreCheckout";
 import { playPCM } from "./utils/audioUtils";
 import { motion, AnimatePresence } from "motion/react";
 import { AssistantMode, AssistantLanguage } from "./utils/promptUtils";
@@ -541,7 +541,7 @@ export default function App() {
             
             <div className="shrink-0 pt-1 sm:pt-0 pb-1 sm:pb-0">
               {!isPremium ? (
-                <RazorpayCheckout onPaymentSuccess={handlePaymentSuccess} />
+                <PlayStoreCheckout onPaymentSuccess={handlePaymentSuccess} />
               ) : (
                 <div className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/50 rounded-full text-xs font-medium whitespace-nowrap">
                   🌟 Premium

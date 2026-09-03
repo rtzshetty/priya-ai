@@ -1,128 +1,72 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Loader2, CreditCard, X, Check, Star } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+// For Median.co JS Bridge
+declare global {
+  interface Window {
+    median?: any;
+    gonative?: any;
+    median_iap_info?: (data: any) => void;
+    median_iap_purchased?: (data: any) => void;
+  }
+}
+
 const PLANS = [
-  { id: "1_month", name: "1 Month", price: 50, duration: "1 month", popular: false },
-  { id: "3_months", name: "3 Months", price: 150, duration: "3 months", popular: true },
-  { id: "1_year", name: "1 Year", price: 600, duration: "1 year", popular: false },
+  { id: "priya_premium_1_month", name: "1 Month", price: 50, duration: "1 month", popular: false },
+  { id: "priya_premium_3_months", name: "3 Months", price: 150, duration: "3 months", popular: true },
+  { id: "priya_premium_1_year", name: "1 Year", price: 600, duration: "1 year", popular: false },
 ];
 
-export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSuccess?: () => void }) {
+export default function PlayStoreCheckout({ onPaymentSuccess }: { onPaymentSuccess?: () => void }) {
   const [showModal, setShowModal] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
+  useEffect(() => {
+    // Setup listeners for Median IAP callbacks
+    window.median_iap_purchased = function (data: any) {
+      setLoadingPlan(null);
+      if (data && data.success) {
+        setShowModal(false);
+        if (onPaymentSuccess) onPaymentSuccess();
+      } else {
+        setErrorMessage("Purchase failed or was cancelled.");
+      }
+    };
+
+    return () => {
+      delete window.median_iap_purchased;
+    };
+  }, [onPaymentSuccess]);
 
   const handlePayment = async (plan: typeof PLANS[0]) => {
     try {
       setLoadingPlan(plan.id);
-      setPaymentStatus("idle");
       setErrorMessage("");
 
-      const res = await loadRazorpayScript();
-      if (!res) {
-        throw new Error("Razorpay SDK failed to load. Are you online?");
-      }
-
-      // Step 1: Create Order
-      const orderResponse = await fetch("/api/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: plan.price * 100, 
-          currency: "INR",
-          receipt: "receipt_" + Date.now(),
-        }),
-      });
-
-      if (!orderResponse.ok) {
-        let errorMsg = "Failed to create order";
-        const contentType = orderResponse.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await orderResponse.json();
-          errorMsg = errorData.error || errorMsg;
-        } else {
-          const textData = await orderResponse.text();
-          console.error("Non-JSON error from server:", textData);
-          errorMsg = `Server error: ${textData.substring(0, 50)}...`;
-        }
-        throw new Error(errorMsg);
-      }
-
-      const orderData = await orderResponse.json();
-
-      // Step 2: Open Razorpay Modal
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use Vite env var
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Priya Premium",
-        description: `Unlock Premium Features (${plan.name})`,
-        order_id: orderData.id,
-        handler: async function (response: any) {
-          try {
-            // Step 3: Verify Signature
-            const verifyResponse = await fetch("/api/verify-payment", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-              }),
-            });
-
-            if (!verifyResponse.ok) {
-              throw new Error("Payment verification failed");
-            }
-
-            const verifyData = await verifyResponse.json();
-            if (verifyData.success) {
-              setPaymentStatus("success");
-              setShowModal(false);
-              if (onPaymentSuccess) onPaymentSuccess();
-            } else {
-              throw new Error("Invalid signature");
-            }
-          } catch (err: any) {
-            setPaymentStatus("error");
-            setErrorMessage(err.message || "Verification failed");
-          }
-        },
-        prefill: {
-          name: "User",
-          email: "user@example.com",
-          contact: "9999999999",
-        },
-        theme: {
-          color: "#8b5cf6", // Violet 500
-        },
-      };
-
-      const rzp1 = new (window as any).Razorpay(options);
+      const isMedian = typeof window.median !== 'undefined' || typeof window.gonative !== 'undefined';
       
-      rzp1.on("payment.failed", function (response: any) {
-        setPaymentStatus("error");
-        setErrorMessage(response.error.description || "Payment failed");
-      });
-
-      rzp1.open();
+      if (isMedian) {
+        // Trigger Median IAP
+        const bridge = window.median || window.gonative;
+        if (bridge.iap && bridge.iap.purchase) {
+          bridge.iap.purchase({ productID: plan.id });
+          // Note: Wait for window.median_iap_purchased callback to fire.
+        } else {
+          throw new Error("In-App Purchases are not configured in your Median app.");
+        }
+      } else {
+        // Mock fallback for standard browser testing
+        setTimeout(() => {
+          setLoadingPlan(null);
+          setShowModal(false);
+          if (onPaymentSuccess) onPaymentSuccess();
+        }, 1500);
+      }
     } catch (err: any) {
-      setPaymentStatus("error");
-      setErrorMessage(err.message || "Something went wrong");
-    } finally {
       setLoadingPlan(null);
+      setErrorMessage(err.message || "Something went wrong");
     }
   };
 
@@ -138,7 +82,7 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
             Upgrade to Premium
           </button>
           
-          {paymentStatus === "error" && !showModal && (
+          {errorMessage && !showModal && (
             <div className="absolute top-12 text-red-400 text-[10px] px-2 py-1 bg-red-500/10 rounded border border-red-500/20 whitespace-nowrap z-50">
               {errorMessage}
             </div>
@@ -177,7 +121,7 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
                 <p className="text-white/60 text-sm max-w-sm mx-auto">Unlock Physiological mode and premium features tailored for you.</p>
               </div>
 
-              {paymentStatus === "error" && (
+              {errorMessage && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-center shrink-0">
                   {errorMessage}
                 </div>
