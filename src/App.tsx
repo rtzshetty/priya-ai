@@ -42,12 +42,12 @@ export default function App() {
   });
   
   const [isPremium, setIsPremium] = useState<boolean>(() => {
-    return localStorage.getItem("priya_is_premium") === "true";
+    return localStorage.getItem("priya_is_premium_v2") === "true";
   });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handlePaymentSuccess = () => {
-    localStorage.setItem("priya_is_premium", "true");
+    localStorage.setItem("priya_is_premium_v2", "true");
     setIsPremium(true);
     setToastMessage("Welcome to Premium! You now have access to Physiological Mode.");
     setTimeout(() => setToastMessage(null), 4000);
