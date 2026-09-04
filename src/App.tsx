@@ -481,21 +481,99 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <header className="absolute top-0 left-0 w-full flex justify-between items-center z-20 shrink-0 px-6 py-4 md:px-12 md:py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center font-bold text-sm">
-            P
+      <header className="absolute top-0 left-0 w-full flex flex-col md:flex-row justify-between items-start md:items-center z-20 shrink-0 px-4 py-3 md:px-12 md:py-6 gap-3 md:gap-0 pointer-events-none">
+        <div className="flex justify-between items-center w-full pointer-events-auto">
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center font-bold text-sm shrink-0">
+              P
+            </div>
+            <h1 className="text-lg md:text-xl font-serif font-medium tracking-wide opacity-90">Priya</h1>
+            
+            <div className="block md:hidden ml-1 sm:ml-2">
+              {!isPremium ? (
+                <RazorpayCheckout onPaymentSuccess={handlePaymentSuccess} />
+              ) : (
+                <div className="px-2 py-1 bg-green-500/20 text-green-400 border border-green-500/50 rounded-full text-[10px] font-medium">
+                  🌟 Premium
+                </div>
+              )}
+            </div>
           </div>
-          <h1 className="text-xl font-serif font-medium tracking-wide opacity-90 hidden sm:block">Priya</h1>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center ml-2 lg:ml-6 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
-            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10">
+
+          <div className="flex items-center gap-1 sm:gap-2">
+            {mode === "physiological" && (
+              <button
+                onClick={() => setShowMoodTracker(true)}
+                className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+                title="Emotional Trend Tracker"
+              >
+                <Activity size={16} className="opacity-70 text-violet-300 sm:w-[18px] sm:h-[18px]" />
+              </button>
+            )}
+            
+            {messages.length > 0 && (
+              <>
+                <button
+                  onClick={handleDownloadChat}
+                  className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+                  title="Download Chat Locally"
+                >
+                  <Save size={16} className="opacity-70 sm:w-[18px] sm:h-[18px]" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("Clear local chat history?")) {
+                      const initialMsg: ChatMessage = { id: "1", sender: "priya", text: "Namaste! I'm Priya. How can I entertain you today?" };
+                      setMessages([initialMsg]);
+                      localStorage.removeItem("priya_chat_local_cache");
+                      resetPriyaSession();
+                    }
+                  }}
+                  className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition-colors border border-white/10"
+                  title="Clear History"
+                >
+                  <Trash2 size={16} className="opacity-70 sm:w-[18px] sm:h-[18px]" />
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setUserName("");
+                setIsPremium(false);
+                localStorage.removeItem("priya_user_name");
+                localStorage.removeItem("priya_is_premium");
+                localStorage.removeItem("priya_chat_local_cache");
+                setMessages([]);
+                resetPriyaSession();
+              }}
+              className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+              title="Sign Out / Change Name"
+            >
+              <LogOut size={16} className="opacity-70 sm:w-[18px] sm:h-[18px]" />
+            </button>
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-1.5 sm:p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+              title={isMuted ? "Unmute" : "Mute"}
+            >
+              {isMuted ? (
+                <VolumeX size={16} className="opacity-70 sm:w-[18px] sm:h-[18px]" />
+              ) : (
+                <Volume2 size={16} className="opacity-70 sm:w-[18px] sm:h-[18px]" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex md:absolute md:left-1/2 md:-translate-x-1/2 overflow-x-auto custom-scrollbar pb-1 pointer-events-auto w-full md:w-auto -mx-2 px-2 md:mx-0 md:px-0">
+          <div className="flex items-center gap-2 md:gap-4 text-[10px] md:text-xs font-mono min-w-max mx-auto md:mx-0">
+            <div className="flex bg-white/5 p-0.5 md:p-1 rounded-full border border-white/10 shrink-0">
               <button
                 onClick={() => {
                   setMode("personal");
                   if (language === "hindi") setLanguage("english");
                 }}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "personal" ? "bg-violet-500/30 text-violet-300" : "text-white/50 hover:text-white/80"}`}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${mode === "personal" ? "bg-violet-500/30 text-violet-300" : "text-white/50 hover:text-white/80"}`}
               >
                 Personal
               </button>
@@ -509,7 +587,7 @@ export default function App() {
                     setTimeout(() => setToastMessage(null), 3000);
                   }
                 }}
-                className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "physiological" ? "bg-teal-500/30 text-teal-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
+                className={`flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${mode === "physiological" ? "bg-teal-500/30 text-teal-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
               >
                 Physiological {!isPremium && <span className="text-[10px]">🔒</span>}
               </button>
@@ -522,29 +600,28 @@ export default function App() {
                     setTimeout(() => setToastMessage(null), 3000);
                   }
                 }}
-                className={`flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${mode === "professional" ? "bg-blue-500/30 text-blue-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
+                className={`flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${mode === "professional" ? "bg-blue-500/30 text-blue-300" : "text-white/50 hover:text-white/80"} ${!isPremium ? "opacity-70" : ""}`}
               >
                 Professional {!isPremium && <span className="text-[10px]">🔒</span>}
               </button>
             </div>
-
-            <div className="flex bg-white/5 p-0.5 sm:p-1 rounded-full border border-white/10">
+            <div className="flex bg-white/5 p-0.5 md:p-1 rounded-full border border-white/10 shrink-0">
               <button
                 onClick={() => setLanguage("english")}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${language === "english" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${language === "english" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
               >
                 English
               </button>
               <button
                 onClick={() => setLanguage("hinglish")}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${language === "hinglish" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${language === "hinglish" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
               >
                 Hinglish
               </button>
               {mode === "professional" && (
                 <button
                   onClick={() => setLanguage("hindi")}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors ${language === "hindi" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
+                  className={`px-2 md:px-3 py-1 md:py-1.5 rounded-full transition-colors ${language === "hindi" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"}`}
                 >
                   Hindi
                 </button>
@@ -562,75 +639,9 @@ export default function App() {
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {mode === "physiological" && (
-            <button
-              onClick={() => setShowMoodTracker(true)}
-              className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
-              title="Emotional Trend Tracker"
-            >
-              <Activity size={18} className="opacity-70 text-violet-300" />
-            </button>
-          )}
-          
-          {messages.length > 0 && (
-            <>
-              <button
-                onClick={handleDownloadChat}
-                className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
-                title="Download Chat Locally"
-              >
-                <Save size={18} className="opacity-70" />
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm("Clear local chat history?")) {
-                    const initialMsg: ChatMessage = { id: "1", sender: "priya", text: "Namaste! I'm Priya. How can I entertain you today?" };
-                    setMessages([initialMsg]);
-                    localStorage.removeItem("priya_chat_local_cache");
-                    resetPriyaSession();
-                  }
-                }}
-                className="p-2 rounded-full bg-white/5 hover:bg-red-500/20 hover:text-red-400 transition-colors border border-white/10"
-                title="Clear History"
-              >
-                <Trash2 size={18} className="opacity-70" />
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => {
-              setUserName("");
-              setIsPremium(false);
-              localStorage.removeItem("priya_user_name");
-              localStorage.removeItem("priya_is_premium");
-              localStorage.removeItem("priya_chat_local_cache");
-              setMessages([]);
-              resetPriyaSession();
-            }}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
-            title="Sign Out / Change Name"
-          >
-            <LogOut size={18} className="opacity-70" />
-          </button>
-
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
-            title={isMuted ? "Unmute" : "Mute"}
-          >
-            {isMuted ? (
-              <VolumeX size={18} className="opacity-70" />
-            ) : (
-              <Volume2 size={18} className="opacity-70" />
-            )}
-          </button>
-        </div>
       </header>
 
-      <div className="absolute inset-x-0 top-24 bottom-32 overflow-y-auto px-6 md:px-12 pointer-events-none z-10 custom-scrollbar">
+      <div className="absolute inset-x-0 top-32 md:top-24 bottom-32 overflow-y-auto px-6 md:px-12 pointer-events-none z-10 custom-scrollbar">
         <div className="max-w-2xl mx-auto flex flex-col gap-4 pointer-events-auto pb-4">
           {messages.map((msg) => (
             <motion.div
@@ -675,7 +686,7 @@ export default function App() {
         </div>
       </div>
 
-      <main className="absolute inset-0 flex flex-row items-center justify-between w-full h-full z-10 overflow-hidden pt-20 pb-24 px-4 md:px-12 pointer-events-none">
+      <main className="absolute inset-0 flex flex-row items-center justify-between w-full h-full z-10 overflow-hidden pt-28 md:pt-20 pb-24 px-4 md:px-12 pointer-events-none">
         <div className="flex w-[30%] lg:w-[25%] h-full flex-col justify-center gap-4 z-10">
           <div className="h-6">
             <AnimatePresence>
@@ -717,7 +728,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="absolute bottom-0 left-0 w-full flex flex-col items-center justify-center pb-6 md:pb-8 z-20 shrink-0 gap-4">
+      <footer className="absolute bottom-0 left-0 w-full flex flex-col items-center justify-center pb-4 md:pb-8 z-20 shrink-0 gap-3 md:gap-4 pointer-events-none">
         <AnimatePresence>
           {showTextInput && (
             <motion.div
@@ -728,7 +739,7 @@ export default function App() {
             >
               <form 
                 onSubmit={handleTextSubmit}
-                className="w-full flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 pl-4 backdrop-blur-md shadow-2xl"
+                className="w-full flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1 pl-4 backdrop-blur-md shadow-2xl pointer-events-auto"
               >
                 <input 
                   type="text"
@@ -754,7 +765,7 @@ export default function App() {
                   <Send size={16} />
                 </button>
               </form>
-              <div className="flex justify-center">
+              <div className="flex justify-center pointer-events-auto">
                 <button 
                   onClick={() => {
                     setShowVideoGenerator(true);
@@ -770,11 +781,11 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4 pointer-events-auto">
           <button
             onClick={toggleListening}
             className={`
-              group relative flex items-center gap-3 px-8 py-4 rounded-full font-medium tracking-wide transition-all duration-300 shadow-2xl
+              group relative flex items-center gap-2 md:gap-3 px-6 py-3 md:px-8 md:py-4 rounded-full font-medium md:tracking-wide transition-all duration-300 shadow-2xl text-sm md:text-base
               ${
                 isSessionActive
                   ? "bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30"
