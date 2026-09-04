@@ -231,9 +231,6 @@ function getAI() {
     }
   });
 
-
-
-
   app.post("/api/create-order", async (req, res) => {
     try {
       const { amount, currency = "INR", receipt = "receipt_1" } = req.body;
@@ -274,13 +271,18 @@ function getAI() {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
       
+      const key_secret = process.env.RAZORPAY_KEY_SECRET;
+      if (!key_secret) {
+        return res.status(500).json({ error: "Server misconfiguration: Razorpay secret is missing." });
+      }
+
       if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
       const body = razorpay_order_id + "|" + razorpay_payment_id;
       const expectedSignature = crypto
-        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "")
+        .createHmac("sha256", key_secret)
         .update(body.toString())
         .digest("hex");
                                   
@@ -294,8 +296,8 @@ function getAI() {
     }
   });
 
-// Export for Vercel
 
+// Export for Vercel
 export default app;
 
 if (!process.env.VERCEL) {

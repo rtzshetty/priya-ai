@@ -57,7 +57,7 @@ export default function VideoGenerator({ onClose }: VideoGeneratorProps) {
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-4xl bg-[#0a0a0a] border border-white/10 rounded-[2rem] shadow-[0_0_50px_rgba(139,92,246,0.3)] flex flex-col md:flex-row h-[85vh] md:h-auto overflow-y-auto custom-scrollbar"
+        className="w-full max-w-4xl bg-[#0a0a0a] border border-white/10 rounded-[2rem] overflow-hidden shadow-[0_0_50px_rgba(139,92,246,0.3)] flex flex-col md:flex-row h-[80vh] md:h-auto"
       >
         {/* Left Column: Input */}
         <div className="w-full md:w-2/5 p-8 border-b md:border-b-0 md:border-r border-white/10 flex flex-col gap-6">

@@ -30,6 +30,25 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
       setPaymentStatus("idle");
       setErrorMessage("");
 
+      const isMedian = typeof window !== "undefined" && !!(window as any).median;
+
+      if (isMedian) {
+        try {
+          if ((window as any).median?.iap?.purchase) {
+            await (window as any).median.iap.purchase({ productID: plan.id });
+            setPaymentStatus("success");
+            setShowModal(false);
+            if (onPaymentSuccess) onPaymentSuccess();
+          } else {
+            throw new Error("In-App Purchase is not available.");
+          }
+        } catch (err: any) {
+          setPaymentStatus("error");
+          setErrorMessage(err?.message || "Payment failed or cancelled");
+        }
+        return;
+      }
+
       const res = await loadRazorpayScript();
       if (!res) {
         throw new Error("Razorpay SDK failed to load. Are you online?");
@@ -52,6 +71,10 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
         if (contentType && contentType.includes("application/json")) {
           const errorData = await orderResponse.json();
           errorMsg = errorData.error || errorMsg;
+        } else {
+          const textData = await orderResponse.text();
+          console.error("Non-JSON error from server:", textData);
+          errorMsg = `Server error: ${textData.substring(0, 50)}...`;
         }
         throw new Error(errorMsg);
       }
@@ -60,7 +83,7 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
 
       // Step 2: Open Razorpay Modal
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use Vite env var
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Priya Premium",
@@ -102,7 +125,7 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
           contact: "9999999999",
         },
         theme: {
-          color: "#8b5cf6",
+          color: "#8b5cf6", // Violet 500
         },
       };
 
