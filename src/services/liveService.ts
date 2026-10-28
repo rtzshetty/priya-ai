@@ -19,12 +19,15 @@ export class LiveSessionManager {
   private screenStream: MediaStream | null = null;
   private videoElement: HTMLVideoElement | null = null;
   private canvasElement: HTMLCanvasElement | null = null;
-  private screenCaptureInterval: number | null = null;
+  private screenCaptureTimeout: any = null;
+  private isProcessingFrame: boolean = false;
 
   // Audio playback state
   private playbackContext: AudioContext | null = null;
+  private activeAudioSources: AudioBufferSourceNode[] = [];
   private nextPlayTime: number = 0;
   private isPlaying: boolean = false;
+  private startTime: number = 0;
   public isMuted: boolean = false;
   
   public onStateChange: (state: "idle" | "listening" | "processing" | "speaking") => void = () => {};
@@ -48,6 +51,7 @@ export class LiveSessionManager {
       }
       this.ai = new GoogleGenAI({ apiKey: API_KEY });
       this.onStateChange("processing");
+      this.startTime = Date.now();
       
       const locStr = location ? `\n\nUser current location: Latitude ${location.lat}, Longitude ${location.lng}. Use this for navigation/directions help.` : "";
       
@@ -97,13 +101,21 @@ export class LiveSessionManager {
         throw new Error("Web Audio API is not supported in this browser.");
       }
       
-      this.audioContext = new AudioContextClass({ sampleRate: 16000 });
-      this.playbackContext = new AudioContextClass({ sampleRate: 24000 });
+      // Reuse context if it exists and is not closed
+      if (!this.audioContext || this.audioContext.state === 'closed') {
+        this.audioContext = new AudioContextClass({ sampleRate: 16000 });
+      }
+      if (!this.playbackContext || this.playbackContext.state === 'closed') {
+        this.playbackContext = new AudioContextClass({ sampleRate: 24000 });
+      }
+      
       this.nextPlayTime = this.playbackContext.currentTime;
 
       // Resume contexts on user interaction (we are in a click handler context here)
-      await this.audioContext.resume();
-      await this.playbackContext.resume();
+      await Promise.all([
+        this.audioContext.resume(),
+        this.playbackContext.resume()
+      ]);
 
       this.source = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
@@ -217,6 +229,12 @@ export class LiveSessionManager {
             }, 500);
           },
           onmessage: async (message: LiveServerMessage) => {
+            // Check for session duration and log
+            const elapsed = Date.now() - this.startTime;
+            if (elapsed > 45 * 60 * 1000) {
+              console.warn("Session has been open for > 45 mins. Stability may decrease.");
+            }
+
             // Handle Model Turn (Audio and Text)
             if (message.serverContent?.modelTurn) {
               const parts = message.serverContent.modelTurn.parts || [];
@@ -348,6 +366,8 @@ export class LiveSessionManager {
             const errMsg = err?.message || String(err);
             if (errMsg.includes("Resource has been exhausted") || errMsg.includes("quota")) {
                 this.onError("QUOTA_EXCEEDED");
+            } else if (errMsg.includes("deadline") || errMsg.includes("timeout")) {
+                this.onError("SESSION_TIMEOUT");
             } else {
                 this.onError(errMsg);
             }
@@ -392,9 +412,13 @@ export class LiveSessionManager {
       source.start(this.nextPlayTime);
       this.nextPlayTime += audioBuffer.duration;
       this.isPlaying = true;
+
+      // Track active sources so we can stop them if interrupted
+      this.activeAudioSources.push(source);
       
       source.onended = () => {
-        if (this.playbackContext && this.playbackContext.currentTime >= this.nextPlayTime - 0.1) {
+        this.activeAudioSources = this.activeAudioSources.filter(s => s !== source);
+        if (this.activeAudioSources.length === 0) {
           this.isPlaying = false;
           this.onStateChange("listening");
         }
@@ -405,13 +429,17 @@ export class LiveSessionManager {
   }
 
   private stopPlayback() {
+    // Stop all currently playing and queued sources
+    this.activeAudioSources.forEach(s => {
+      try { s.stop(); } catch (e) {}
+    });
+    this.activeAudioSources = [];
+    
     if (this.playbackContext) {
-      this.playbackContext.close();
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      this.playbackContext = new AudioContextClass({ sampleRate: 24000 });
+      // Reset next play time to current wall clock
       this.nextPlayTime = this.playbackContext.currentTime;
-      this.isPlaying = false;
     }
+    this.isPlaying = false;
   }
 
   stop() {
@@ -427,10 +455,7 @@ export class LiveSessionManager {
       this.mediaStream.getTracks().forEach(t => t.stop());
       this.mediaStream = null;
     }
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
+    
     this.stopPlayback();
     this.stopScreenShare();
     
@@ -443,6 +468,7 @@ export class LiveSessionManager {
       this.sessionPromise = null;
     }
     this.isConnected = false;
+    this.startTime = 0;
     
     this.onStateChange("idle");
   }
@@ -456,27 +482,28 @@ export class LiveSessionManager {
   }
 
   async startScreenShare() {
-    this.stopScreenShare(); // Clear any existing screen share session to prevent interval overlaps and memory leaks
+    this.stopScreenShare(); // Clear any existing screen share session
     
-    // Check for webview/median compatibility (mobile webviews often do not support getDisplayMedia)
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-      console.warn("Screen sharing is not supported on this device/browser (likely a mobile WebView).");
+      console.warn("Screen sharing is not supported on this device/browser.");
       return false;
     }
 
     try {
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          width: { max: 1280 },
-          height: { max: 720 },
-          frameRate: { max: 5 }
+          width: { max: 800 }, // Reduced max resolution for stability
+          height: { max: 600 },
+          frameRate: { max: 2 } // Lower frame rate for less overhead
         },
         audio: false
       });
 
       this.videoElement = document.createElement("video");
       this.videoElement.srcObject = this.screenStream;
-      this.videoElement.play();
+      this.videoElement.muted = true;
+      this.videoElement.setAttribute("playsinline", "");
+      await this.videoElement.play();
 
       this.canvasElement = document.createElement("canvas");
       
@@ -484,54 +511,77 @@ export class LiveSessionManager {
         this.stopScreenShare();
       };
 
-      // Increase interval to 2000ms (0.5 FPS) to prevent WebSocket buffer bloat on slow connections
-      this.screenCaptureInterval = window.setInterval(() => this.captureAndSendFrame(), 2000);
+      // Use a self-scheduling loop instead of setInterval to ensure atomic frame processing
+      this.isProcessingFrame = false;
+      this.captureLoop();
 
       return true;
     } catch (error) {
       console.warn("Screen share error:", error);
+      this.stopScreenShare();
       return false;
     }
   }
 
+  private captureLoop = () => {
+    if (!this.screenStream || !this.isConnected) return;
+    
+    this.captureAndSendFrame();
+    
+    // Schedule next frame capture in 2 seconds (0.5 FPS)
+    // This allows plenty of time for processing and prevents buildup
+    this.screenCaptureTimeout = setTimeout(this.captureLoop, 2000);
+  };
+
   private captureAndSendFrame() {
-    if (!this.isConnected || !this.sessionPromise || !this.videoElement || !this.canvasElement) return;
+    if (this.isProcessingFrame || !this.isConnected || !this.liveSession || !this.videoElement || !this.canvasElement) return;
 
     if (this.videoElement.videoWidth === 0 || this.videoElement.videoHeight === 0) return;
 
-    // Scale down more aggressively for low internet connection / extended sessions
-    const MAX_WIDTH = 480;
-    const scale = Math.min(1, MAX_WIDTH / this.videoElement.videoWidth);
-    this.canvasElement.width = this.videoElement.videoWidth * scale;
-    this.canvasElement.height = this.videoElement.videoHeight * scale;
-    
-    const ctx = this.canvasElement.getContext("2d");
-    if (!ctx) return;
+    this.isProcessingFrame = true;
+    try {
+      // Scale down aggressively: Max width 480px for stability on mobile/slow connections
+      const MAX_WIDTH = 480;
+      const scale = Math.min(1, MAX_WIDTH / this.videoElement.videoWidth);
+      this.canvasElement.width = this.videoElement.videoWidth * scale;
+      this.canvasElement.height = this.videoElement.videoHeight * scale;
+      
+      const ctx = this.canvasElement.getContext("2d", { alpha: false }); // Disable alpha for perf
+      if (!ctx) return;
 
-    ctx.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
-    // Use aggressive JPEG compression to prevent memory buildup in WebSocket buffers
-    const dataUrl = this.canvasElement.toDataURL("image/jpeg", 0.15);
-    const base64Data = dataUrl.split(",")[1];
+      ctx.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
+      
+      // Use very aggressive JPEG compression (0.1) to minimize payload size
+      const dataUrl = this.canvasElement.toDataURL("image/jpeg", 0.1);
+      const base64Data = dataUrl.split(",")[1];
 
-    if (this.liveSession) {
-      try {
+      if (this.liveSession) {
         this.liveSession.sendRealtimeInput({
           video: { data: base64Data, mimeType: "image/jpeg" }
         });
-      } catch (err) { console.warn("Error sending video frame", err); }
+      }
+    } catch (err) { 
+      console.warn("Error sending video frame", err); 
+    } finally {
+      this.isProcessingFrame = false;
     }
   }
 
   stopScreenShare() {
-    if (this.screenCaptureInterval !== null) {
-      clearInterval(this.screenCaptureInterval);
-      this.screenCaptureInterval = null;
+    if (this.screenCaptureTimeout !== null) {
+      clearTimeout(this.screenCaptureTimeout);
+      this.screenCaptureTimeout = null;
     }
+    this.isProcessingFrame = false;
     if (this.screenStream) {
       this.screenStream.getTracks().forEach(t => t.stop());
       this.screenStream = null;
     }
-    this.videoElement = null;
+    if (this.videoElement) {
+      this.videoElement.pause();
+      this.videoElement.srcObject = null;
+      this.videoElement = null;
+    }
     this.canvasElement = null;
   }
 }

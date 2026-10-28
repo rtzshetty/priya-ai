@@ -13,6 +13,7 @@ import RazorpayCheckout from "./components/RazorpayCheckout";
 import { playPCM } from "./utils/audioUtils";
 import { motion, AnimatePresence } from "motion/react";
 import { AssistantMode, AssistantLanguage } from "./utils/promptUtils";
+import { useAdMob } from "./hooks/useAdMob";
 
 type AppState = "idle" | "listening" | "processing" | "speaking";
 
@@ -37,6 +38,7 @@ declare global {
 }
 
 export default function App() {
+  const { showInterstitial } = useAdMob();
   const [userName, setUserName] = useState<string>(() => {
     return localStorage.getItem("priya_user_name") || "";
   });
@@ -80,7 +82,21 @@ export default function App() {
 
   useEffect(() => {
     messagesRef.current = messages;
-    localStorage.setItem("priya_chat_local_cache", JSON.stringify(messages));
+    try {
+      // Keep only the last 100 messages in storage to prevent quota errors and performance lag
+      const messagesToSave = messages.length > 100 ? messages.slice(-100) : messages;
+      localStorage.setItem("priya_chat_local_cache", JSON.stringify(messagesToSave));
+    } catch (e) {
+      console.warn("Failed to save chat to local storage:", e);
+      // If quota is exceeded, clear old history and try one more time with a smaller set
+      if (messages.length > 20) {
+        try {
+           localStorage.setItem("priya_chat_local_cache", JSON.stringify(messages.slice(-20)));
+        } catch (innerE) {
+           localStorage.removeItem("priya_chat_local_cache");
+        }
+      }
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -95,7 +111,12 @@ export default function App() {
   }, []);
 
   const addMessage = (msg: ChatMessage) => {
-    setMessages(prev => [...prev, msg]);
+    setMessages(prev => {
+      const next = [...prev, msg];
+      // Hard limit in-memory messages to 200 for stability
+      if (next.length > 200) return next.slice(-200);
+      return next;
+    });
   };
 
   const [isMuted, setIsMuted] = useState(false);
@@ -359,6 +380,9 @@ export default function App() {
       try {
         setIsSessionActive(true);
         resetPriyaSession();
+        
+        // Show the interstitial ad
+        showInterstitial();
         
         const session = new LiveSessionManager();
         session.isMuted = isMuted;
