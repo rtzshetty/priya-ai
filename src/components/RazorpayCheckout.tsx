@@ -202,52 +202,63 @@ export default function RazorpayCheckout({ onPaymentSuccess }: { onPaymentSucces
                 </div>
               )}
 
-              <div className="overflow-y-auto pr-1 pb-4 custom-scrollbar">
-                <div className="grid gap-4 md:grid-cols-3">
+              <div className="overflow-y-auto px-1 pb-6 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {PLANS.map((plan) => (
                     <div 
                       key={plan.id}
-                      className={`relative flex flex-col p-5 rounded-xl border transition-all ${
+                      className={`relative flex flex-col p-6 rounded-2xl border transition-all duration-300 ${
                         plan.popular 
-                          ? "border-violet-500 bg-violet-500/10 md:-translate-y-1 shadow-[0_8px_30px_rgb(139,92,246,0.12)]" 
+                          ? "border-violet-500 bg-violet-500/10 shadow-[0_0_20px_rgba(139,92,246,0.15)] ring-1 ring-violet-500/50" 
                           : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
                       }`}
                     >
                       {plan.popular && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-violet-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap shadow-lg">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-violet-600 text-white text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap shadow-xl z-10">
                           Most Popular
                         </div>
                       )}
                       
-                      <div className="mb-6 mt-2 text-center md:text-left">
-                        <h3 className="text-white font-medium mb-1 text-sm md:text-base">{plan.name}</h3>
-                        <div className="flex items-baseline justify-center md:justify-start gap-1">
-                          <span className="text-3xl font-bold text-white">₹{plan.price}</span>
+                      <div className="mb-6 mt-2">
+                        <h3 className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-2">{plan.name}</h3>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-4xl font-bold text-white">₹{plan.price}</span>
+                          <span className="text-white/40 text-sm">/{plan.duration}</span>
                         </div>
                       </div>
-
-                      <ul className="space-y-3 mb-6 flex-1">
-                        <li className="flex items-start gap-2 text-xs md:text-sm text-white/70">
-                          <Check size={16} className="text-green-400 shrink-0 mt-0.5" />
+ 
+                      <div className="space-y-4 mb-8 flex-1">
+                        <div className="flex items-center gap-3 text-sm text-white/80">
+                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                            <Check size={12} className="text-green-400" />
+                          </div>
                           <span>Physiological Mode</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-xs md:text-sm text-white/70">
-                          <Check size={16} className="text-green-400 shrink-0 mt-0.5" />
-                          <span>Premium Analytics</span>
-                        </li>
-                      </ul>
-
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-white/80">
+                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                            <Check size={12} className="text-green-400" />
+                          </div>
+                          <span>Emotional Analytics</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-white/80">
+                          <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                            <Check size={12} className="text-green-400" />
+                          </div>
+                          <span>Priority Support</span>
+                        </div>
+                      </div>
+ 
                       <button
                         onClick={() => handlePayment(plan)}
                         disabled={loadingPlan !== null}
-                        className={`w-full py-3 rounded-lg text-xs md:text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                        className={`w-full py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 ${
                           plan.popular 
-                            ? "bg-violet-600 text-white hover:bg-violet-500 shadow-lg shadow-violet-500/20" 
-                            : "bg-white/10 text-white hover:bg-white/20"
+                            ? "bg-violet-600 text-white hover:bg-violet-500 shadow-lg shadow-violet-500/30" 
+                            : "bg-white/10 text-white hover:bg-white/20 border border-white/5"
                         } disabled:opacity-50`}
                       >
                         {loadingPlan === plan.id ? (
-                          <Loader2 size={16} className="animate-spin" />
+                          <Loader2 size={18} className="animate-spin" />
                         ) : (
                           "Select Plan"
                         )}
